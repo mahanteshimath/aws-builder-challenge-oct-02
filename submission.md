@@ -69,7 +69,8 @@ I used **Snowflake Cortex Code** (VS Code) as the coding agent, connected to my 
 2. wrote the engine, 75 backend tests and 47 frontend tests, the SAM template and deploy scripts;
 3. created the Amplify app, deployed the SAM stack (API Gateway, two Lambdas, private S3, IAM, CloudWatch), uploaded data and deployed the SPA;
 4. ran a 15-check API smoke test and a 14-check Playwright browser test against the **public** URLs - and used those runs to find and fix real bugs (transparent panels, a recovery metric that gave zero credit for reconnecting a cut-off neighbourhood);
-5. rebuilt the dataset from OpenStreetMap + SRTM for Kurla, calibrated it by running the engine, and redeployed.
+5. rebuilt the dataset from OpenStreetMap + SRTM for Kurla, calibrated it by running the engine, and redeployed;
+6. shipped the final release with one command (`pwsh scripts/deploy.ps1`: dataset build â†’ tests â†’ SAM deploy â†’ S3 sync â†’ Amplify deployment â†’ smoke test) and re-verified the public URLs.
 
 **Proof of the connection:** every AWS call the agent makes is tagged `AWS_SDK_UA_APP_ID=cortex-code-agent`, so CloudTrail shows `app/cortex-code-agent` on the `CreateChangeSet`, `ExecuteChangeSet`, `UpdateFunctionConfiguration`, `CreateDeployment` and `StartDeployment` events. The masked CloudTrail table, identity and resource list are in [`docs/AWS_AGENT_CONNECTION_PROOF.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/AWS_AGENT_CONNECTION_PROOF.md); screenshots of the agent chat running the deploy are attached below.
 
@@ -105,6 +106,7 @@ Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) · AWS Ampli
 - 75 backend tests and 47 frontend tests pass; production build succeeds.
 - Deployed-API smoke test: 15/15 (health, dataset provenance, CORS, determinism, optimize, compare, live Bedrock brief, fallback path, three export formats, validation errors).
 - Browser end-to-end run of the full demo on the public URL: 14/14 checks, zero console errors.
+- Final release 2026-10-02 17:35 UTC: CloudFormation `UPDATE_COMPLETE`, Amplify deployment job 7 `SUCCEED`; 22 of 26 CloudTrail events since 17:00 UTC tagged `app/cortex-code-agent`.
 
 ## 90-second demo path
 Baseline → **3. Extreme rainfall** (timeline plays) → click the pink **SCLR rail over-bridge** and **Close this road** → click **Bhabha Hospital** (zones cut off, baseline vs now) → **Response Strategies → B · Maximize population access → Deploy** → Recovery (104,400 → 0) → **Generate AI Situation Brief** → **Export Results**. Or click preset **6. Coordinated emergency response** for the whole story in one click.
@@ -117,12 +119,12 @@ Map data © OpenStreetMap contributors (ODbL 1.0). Terrain SRTM 30 m (public dom
 ---
 
 ## Pre-publish checklist
-- [x] Live demo URL verified on the Kurla data (Amplify job 4, 2026-10-02) and API healthy (`kurla-mithi-osm-1.0`)
+- [x] Live demo URL verified on the Kurla data (final release: Amplify job 7, 2026-10-02 17:35 UTC) and API healthy (`kurla-mithi-osm-1.0`)
 - [x] Proof of coding-agent connection documented (`docs/AWS_AGENT_CONNECTION_PROOF.md`, CloudTrail `app/cortex-code-agent`)
 - [x] Category tag `#social-good` and lane tag `#community` listed above
 - [x] Cover image regenerated for Kurla (1200x675)
-- [x] Tests, smoke test and end-to-end run passing on the deployed system
-- [ ] **Commit and push** this round of changes so the GitHub links resolve to the Kurla version
+- [x] Tests (75 backend / 47 frontend), smoke test (15/15) and end-to-end run (14/14) passing on the deployed system
+- [x] Committed and pushed to `main` so the GitHub links resolve to the Kurla version
 - [ ] **Attach 2-3 screenshots** of the Cortex Code chat running the AWS deploy (the agent cannot capture your screen)
 - [ ] Optional but recommended for storytelling: record the 90-second demo path (`docs/DEMO_SCRIPT.md`) and add the video link
 - [ ] Pick the tags in the form; use **Preview** before **Publish**; publish before **Oct 2, 2026, 11:59 PM PT**

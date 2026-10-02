@@ -1,11 +1,12 @@
 <#
  End-to-end deployment: backend (SAM) + GeoJSON to S3 + frontend (AWS Amplify Hosting).
- Usage:  pwsh scripts/deploy.ps1 -Profile hackathon -Region us-east-1 [-AmplifyAppId <id>] [-EnableBedrock true]
+ Usage:  pwsh scripts/deploy.ps1 -Profile hackathon -Region us-east-1 [-AmplifyAppId <id> | -AmplifyAppId ""] [-EnableBedrock true]
+         Defaults to the existing Amplify app dxhzlkmrgksnx; pass -AmplifyAppId "" to create a new app.
  Requires: AWS CLI v2, SAM CLI, Python 3.12, Node 18+.  Uses IAM credentials from the named profile (no keys in code).
 #>
 param(
   [string]$Profile = "hackathon", [string]$Region = "us-east-1", [string]$StackName = "resilience-simulator",
-  [string]$AmplifyAppId = "", [string]$EnableBedrock = "true", [string]$BedrockModelId = "us.amazon.nova-lite-v1:0",
+  [string]$AmplifyAppId = "dxhzlkmrgksnx", [string]$EnableBedrock = "true", [string]$BedrockModelId = "us.amazon.nova-lite-v1:0",
   [string]$BedrockBaseModelId = "amazon.nova-lite-v1:0"
 )
 $ErrorActionPreference = "Stop"
@@ -23,7 +24,7 @@ aws amplify update-app --app-id $AmplifyAppId --custom-headers file://infra/ampl
 Write-Host "4/6 Build + deploy API (CORS allows $origin)"
 python scripts/build_lambda.py
 sam deploy --stack-name $StackName --region $Region --resolve-s3 --capabilities CAPABILITY_IAM --no-confirm-changeset --no-fail-on-empty-changeset `
-  --parameter-overrides "AllowedOrigins=$origin,http://localhost:5173" "EnableBedrock=$EnableBedrock" "BedrockModelId=$BedrockModelId" "BedrockBaseModelId=$BedrockBaseModelId"
+  --parameter-overrides "AllowedOrigins=$origin,http://localhost:5173,http://localhost:4173" "EnableBedrock=$EnableBedrock" "BedrockModelId=$BedrockModelId" "BedrockBaseModelId=$BedrockBaseModelId"
 $api = aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" --output text
 $bucket = aws cloudformation describe-stacks --stack-name $StackName --query "Stacks[0].Outputs[?OutputKey=='GeoJsonBucketName'].OutputValue" --output text
 Write-Host "5/6 Upload GeoJSON to private S3 bucket $bucket"

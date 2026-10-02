@@ -120,6 +120,8 @@ Executed in this repository (see [docs/AGENT_DEVELOPMENT_LOG.md](docs/AGENT_DEVE
 - `scripts/e2e_flow.py <url>` - Playwright/Chrome run of the full 7-step demo against the deployed Amplify site on the Kurla data: 14/14 checks, zero console errors.
 - `scripts/agent_proof.py` - regenerates the CloudTrail evidence table for the coding agent's AWS connection.
 
+Final release (2026-10-02 17:35 UTC) via `pwsh scripts/deploy.ps1`: stack `UPDATE_COMPLETE`, Amplify job 7 `SUCCEED`, smoke 15/15, browser E2E 14/14.
+
 ## 14. Demo walkthrough
 See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) (90-second script).
 

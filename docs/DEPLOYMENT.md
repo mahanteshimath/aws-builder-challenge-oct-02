@@ -9,9 +9,12 @@ Verified deployment target: **us-east-1**, AWS CLI profile **`hackathon`** (IAM 
 
 ## One command
 ```powershell
-pwsh scripts/deploy.ps1 -Profile hackathon -Region us-east-1
+pwsh scripts/deploy.ps1 -Profile hackathon -Region us-east-1        # updates the existing Amplify app dxhzlkmrgksnx
+pwsh scripts/deploy.ps1 -AmplifyAppId ""                             # first deploy into a new account: creates a new Amplify app
 ```
-Steps performed: generate dataset → backend tests → create Amplify app/branch (first run) → set security headers → `python scripts/build_lambda.py` (Linux wheels into `build/lambda`) → `sam deploy` (CORS = Amplify URL + localhost) → `aws s3 sync` GeoJSON → `npm run build` with `VITE_API_BASE_URL` → zip + Amplify manual deployment → `scripts/smoke_api.py`.
+Every AWS call is tagged `AWS_SDK_UA_APP_ID=cortex-code-agent` (visible in CloudTrail; see `AWS_AGENT_CONNECTION_PROOF.md`).
+
+Steps performed: build the Kurla dataset from the cached OSM + SRTM extracts (`build_kurla_dataset.py`) → backend tests → create Amplify app/branch (first run) → set security headers → `python scripts/build_lambda.py` (Linux wheels into `build/lambda`) → `sam deploy` (CORS = Amplify URL + localhost) → `aws s3 sync` GeoJSON → `npm run build` with `VITE_API_BASE_URL` → zip + Amplify manual deployment → `scripts/smoke_api.py`.
 
 ## Manual steps
 ```powershell
@@ -19,7 +22,7 @@ $env:AWS_PROFILE="hackathon"; $env:AWS_REGION="us-east-1"
 python scripts/build_lambda.py
 sam validate --lint
 sam deploy --stack-name resilience-simulator --resolve-s3 --capabilities CAPABILITY_IAM --no-confirm-changeset `
-  --parameter-overrides "AllowedOrigins=https://main.<appId>.amplifyapp.com,http://localhost:5173" EnableBedrock=true
+  --parameter-overrides "AllowedOrigins=https://main.<appId>.amplifyapp.com,http://localhost:5173,http://localhost:4173" EnableBedrock=true
 aws s3 sync backend/src/data/geojson s3://<GeoJsonBucketName>/geojson/ --exclude manifest.json
 $env:AMPLIFY_APP_ID="<appId>"; $env:API_BASE_URL="<ApiBaseUrl output>"; python scripts/deploy_frontend.py
 python scripts/smoke_api.py <ApiBaseUrl> https://main.<appId>.amplifyapp.com
@@ -39,18 +42,20 @@ Stack outputs: `ApiBaseUrl`, `GeoJsonBucketName`.
 ## Configuration reference
 Frontend (`frontend/.env.example`): `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL` (optional MapLibre style), `VITE_APP_VERSION`. Backend (`backend/.env.example` / template env): `AWS_REGION`, `GEOJSON_BUCKET`, `GEOJSON_PREFIX`, `BEDROCK_MODEL_ID`, `ENABLE_BEDROCK`, `ALLOWED_ORIGINS` (template param), `LOG_LEVEL`, `SIMULATION_VERSION`, `MAX_SIMULATION_INPUT_SIZE`. No secrets are needed; `.env*` files are git-ignored.
 
-## Verification performed (2026-10-02)
+## Verification performed (2026-10-02, final release on the Kurla dataset)
 | Check | Result |
 |---|---|
 | `sam validate --lint` | valid |
-| CloudFormation stack `resilience-simulator` | `CREATE_COMPLETE` |
+| CloudFormation stack `resilience-simulator` | `UPDATE_COMPLETE` (17:35 UTC); `AllowedOrigins` = Amplify URL + localhost:5173/4173 |
+| Amplify app `dxhzlkmrgksnx` | deployment job 7 `SUCCEED` |
+| `GET /api/v1/health` | `dataset_version: kurla-mithi-osm-1.0`, Bedrock enabled |
 | `scripts/smoke_api.py` against the deployed API with the Amplify origin | 15/15 passed (health, dataset, CORS header, simulate, determinism, optimize, compare, Bedrock brief, fallback path, 3 export formats, 422 validation, 422 unknown id, 404) |
 | CORS preflight from an unlisted origin | no `Access-Control-Allow-Origin` header returned |
-| `scripts/e2e_flow.py` (Chrome via Playwright) against the Amplify URL | 14/14 passed, 0 console errors (test harness bypasses CSP only for its own `eval`-based waits; a separate CSP-enforced load showed no violations) |
+| `scripts/e2e_flow.py` (Chrome via Playwright) against the Amplify URL | 14/14 passed on the Kurla data (SCLR over-bridge closure, Bhabha Hospital inspector, 34,800 person-service equivalents restored), 0 console errors (test harness bypasses CSP only for its own `eval`-based waits; a separate CSP-enforced load showed no violations) |
 | Bedrock | live brief returned `provider: bedrock`, model `us.amazon.nova-lite-v1:0`, IDs validated against the facts |
 
 ## Updating
-Backend code change → `python scripts/build_lambda.py; sam deploy ...`. Frontend change → `python scripts/deploy_frontend.py`. Dataset change → regenerate, re-sync to S3 and redeploy the Lambda bundle (bundled copy is the fallback).
+Backend code change → `python scripts/build_lambda.py; sam deploy ...`. Frontend change → `python scripts/deploy_frontend.py`. Dataset change → `python backend/src/data/build_kurla_dataset.py` (add `--refresh` to re-download OSM / SRTM), re-sync to S3 and redeploy the Lambda bundle (bundled copy is the fallback). Agent evidence → `python scripts/agent_proof.py`.
 
 ## Teardown
 `pwsh scripts/teardown.ps1 -Profile hackathon -AmplifyAppId <id>` (empties/deletes the bucket via the stack, deletes the stack and Amplify app). Afterwards optionally delete leftover `/aws/lambda/resilience-simulator-*` log groups and the SAM artifact bucket.

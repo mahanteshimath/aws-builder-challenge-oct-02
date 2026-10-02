@@ -14,6 +14,7 @@ The copy-paste text for the AWS Builder Center form (title, description, tags, l
 | Coding agent | Snowflake Cortex Code (VS Code) via AWS CLI v2 / SAM CLI, profile `hackathon` |
 | Proof of agent ↔ AWS connection | [AWS_AGENT_CONNECTION_PROOF.md](AWS_AGENT_CONNECTION_PROOF.md) - CloudTrail events tagged `app/cortex-code-agent`; regenerate with `scripts/agent_proof.py` |
 | Development process | [AGENT_DEVELOPMENT_LOG.md](AGENT_DEVELOPMENT_LOG.md) |
+| Final release | 2026-10-02 17:35 UTC - CloudFormation `UPDATE_COMPLETE`, Amplify job 7 `SUCCEED`, smoke 15/15, browser E2E 14/14 |
 | AWS services | Amazon Bedrock (Nova Lite, Converse) · AWS Amplify Hosting · Amazon API Gateway HTTP API · AWS Lambda · Amazon S3 · Amazon CloudWatch Logs · AWS IAM · AWS CloudFormation / SAM · AWS CloudTrail |
 | Data | OpenStreetMap (ODbL) roads, bridges, river, facilities; SRTM 30 m terrain; Census 2011 Ward L density; modeled populations, capacities, power links, pumps, resources |
 | Demo | [DEMO_SCRIPT.md](DEMO_SCRIPT.md) (90 s) · screenshots in `docs/screenshots/` · demo video: not yet recorded |

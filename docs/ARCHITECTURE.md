@@ -49,7 +49,7 @@ flowchart TB
 1. **Load** - `GET /dataset` returns the GeoJSON layers, presets, strategies, resource catalog and default thresholds (~180 KB for Kurla). Then `POST /simulate` for the baseline preset.
 2. **Simulate** - `POST /simulate {scenario}` → `run_scenario`: baseline eval (cached) → disaster eval → (optional) recovery eval with validated interventions → bottleneck scan → 6-stage timeline. Returns the three result blocks, comparison rows, timeline, bottlenecks, metric definitions, assumptions, warnings.
 3. **Optimize** - `POST /optimize {scenario, strategy}` → greedy selection, each candidate scored by re-running the engine; returns the plan **and** a full simulation of the scenario with the plan applied (recovery).
-4. **Brief** - `POST /brief {scenario}`: the server **re-runs the simulation** from the scenario (never trusts client-supplied numbers), builds a compact facts packet, calls Bedrock, validates JSON structure and that every identifier cited (`R-019`, `H-02`, `Z-03`…) exists in the facts; otherwise returns the deterministic fallback with `provider: "rule_based"` and a `fallback_reason`.
+4. **Brief** - `POST /brief {scenario}`: the server **re-runs the simulation** from the scenario (never trusts client-supplied numbers), builds a compact facts packet, calls Bedrock, validates JSON structure and that every identifier cited (`R-059`, `H-01`, `Z-02`…) exists in the facts; otherwise returns the deterministic fallback with `provider: "rule_based"` and a `fallback_reason`.
 5. **Export** - `POST /export {scenario, format}` re-runs the simulation and renders JSON / CSV / HTML (data-provenance notice with OSM attribution, assumptions, limitations; no env values).
 
 ## Determinism boundary
