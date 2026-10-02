@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Resilience Simulator - serverless API (API Gateway HTTP API + Lambda + S3 + optional Amazon Bedrock). Synthetic demo data only.
+
+Parameters:
+  AllowedOrigins:
+    Type: CommaDelimitedList
+    Default: "http://localhost:5173"
+    Description: Browser origins allowed by CORS (no wildcard). Add the Amplify URL.
+  EnableBedrock:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+  BedrockModelId:
+    Type: String
+    Default: us.amazon.nova-lite-v1:0
+    Description: Bedrock model or inference profile ID (must be available in the deployment region).
+  BedrockBaseModelId:
+    Type: String
+    Default: amazon.nova-lite-v1:0
+    Description: Underlying foundation model behind the inference profile (used to scope IAM).
+  LogLevel:
+    Type: String
+    Default: INFO
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [x86_64]
+    MemorySize: 1024
+    Timeout: 25
+    CodeUri: build/lambda/
+    LoggingConfig:
+      LogFormat: JSON
+    Environment:
+      Variables:
+        LOG_LEVEL: !Ref LogLevel
+        GEOJSON_BUCKET: !Ref GeoJsonBucket
+        GEOJSON_PREFIX: geojson/
+        SIMULATION_VERSION: "1.0.0"
+        MAX_SIMULATION_INPUT_SIZE: "65536"
+        ENABLE_BEDROCK: !Ref EnableBedrock
+        BEDROCK_MODEL_ID: !Ref BedrockModelId
+
+Resources:
+  GeoJsonBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 14
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: !Ref AllowedOrigins
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [content-type]
+        MaxAge: 600
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 40
+        ThrottlingRateLimit: 20
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","routeKey":"$context.routeKey","status":"$context.status","latency":"$context.responseLatency","integrationError":"$context.integrationErrorMessage"}'
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Health, dataset, simulate, optimize, compare and export (deterministic engine)
+      Handler: src.handlers.api.handler
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref GeoJsonBucket
+      Events:
+        Health:   {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/health, Method: GET}}
+        Dataset:  {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/dataset, Method: GET}}
+        Simulate: {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/simulate, Method: POST}}
+        Optimize: {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/optimize, Method: POST}}
+        Compare:  {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/scenario/compare, Method: POST}}
+        Export:   {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/export, Method: POST}}
+
+  BriefFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Situation brief - Amazon Bedrock with deterministic rule-based fallback
+      Handler: src.handlers.brief.handler
+      Timeout: 29
+      MemorySize: 1024
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref GeoJsonBucket
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: [bedrock:InvokeModel]
+              Resource:
+                - !Sub arn:${AWS::Partition}:bedrock:*::foundation-model/${BedrockBaseModelId}
+                - !Sub arn:${AWS::Partition}:bedrock:${AWS::Region}:${AWS::AccountId}:inference-profile/${BedrockModelId}
+      Events:
+        Brief: {Type: HttpApi, Properties: {ApiId: !Ref HttpApi, Path: /api/v1/brief, Method: POST}}
+
+Outputs:
+  ApiBaseUrl:
+    Description: Base URL for VITE_API_BASE_URL
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  GeoJsonBucketName:
+    Value: !Ref GeoJsonBucket

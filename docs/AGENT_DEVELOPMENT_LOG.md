@@ -1,0 +1,43 @@
+# Agent development log
+
+This log describes what the coding agent (Snowflake Cortex Code, model `claude-sonnet-5-5`) actually did in this repository on **2026-10-02**. Nothing here is estimated or aspirational.
+
+## Environment inspected
+Windows 11, PowerShell 7. Node 24.14, npm 11.9, Python 3.12.10, AWS CLI 2.36.34. **SAM CLI was not installed** - installed with `pip install aws-sam-cli` (see side effects). AWS profiles found: `workshop-profile` and `developer_ai` (expired tokens), `ai-hack` (no credentials), `hackathon` (valid, us-east-1). Repository contained only a README stub. AWS access confirmed with `sts get-caller-identity`; Amplify and Bedrock listing permissions confirmed; `nova` foundation models and `us.amazon.nova-*` inference profiles listed.
+
+## Work completed, in order
+1. **Dataset** - wrote `generate_demo_data.py` (fixed seed) producing 91 roads/63 nodes/29 facilities/8 zones/6 hazard areas/10 infrastructure assets/5 depots/7 resource pools. Tuned the road removal rule so the river is a real barrier (few bridges) while keeping the graph connected.
+2. **Engine** - implemented flood model, Dijkstra graph, accessibility, exposure, power/pump cascade, bottleneck scan, scenario engine, intervention validation, optimizer, timeline, comparison, export, presets, Pydantic models.
+3. **Calibration (iterated by running the engine)** - the first sweep showed 100 mm rainfall producing zero exposure yet 29 affected roads (hazard-zone drainage was too generous), and 170 mm affecting 72 of 91 roads. Changed hazard-zone drainage, `GAIN` 1.8 → 1.5 and the restricted penalty 3.0 → 2.5. Resource quantities/costs were also tightened after the first optimizer run reached 100 % recovery on a 60-lakh budget; default budget set to 30.
+4. **Backend tests** - 74 tests. First run: 72 passed, **2 failed because the tests were wrong** (restoring a drainage pump legitimately lowers flood-closed roads; a facility shared a node with a zone anchor so was always reachable from it). Tests were corrected to assert the intended invariants - engine behaviour was not changed.
+5. **API + AI** - handlers, local server, Bedrock client, grounded brief generator with ID validation, rule-based fallback. Real Bedrock call verified locally (Nova Lite, ~10 s) before deployment.
+6. **AWS** - `template.yaml`, `scripts/build_lambda.py` (Linux wheels; `sam build` on Windows would have bundled Windows binaries). Created Amplify app `dxhzlkmrgksnx`, deployed stack `resilience-simulator` (CREATE_COMPLETE), uploaded GeoJSON, applied Amplify custom headers (CSP etc.).
+7. **Frontend** - React/TS/Vite/Tailwind app: map (icons drawn on canvas, pattern fills, data-driven layers), controls, metrics, inspector, timeline, comparison, response, brief, export/import, SVG fallback map, help dialog.
+8. **Frontend tests** - 47 Vitest tests. Required a `ResizeObserver` polyfill for Radix sliders in jsdom and a store-state reset between tests (one failure was test leakage, not an app bug).
+9. **Verification on the deployed system** - the built-in browser tool was blocked (`ERR_BLOCKED_BY_CLIENT`, even for example.com), so a Playwright script drove the installed Chrome instead (venv under `build/e2e`). Found and fixed: `bg-panel/92` and `/96` are not valid Tailwind opacity steps, so the inspector and legend were transparent; the legend was open by default and covered the map; mobile map height collapsed; metric delta badges overflowed. Also found that the Amplify CSP correctly blocks Playwright's `eval`-based waits (harness now bypasses CSP only when `BYPASS_CSP=1`).
+10. **Docs/scripts** - README, docs/*, deploy/teardown/smoke/E2E scripts.
+
+## Results actually observed
+| Item | Result |
+|---|---|
+| `python -m pytest backend` | 74 passed (≈ 5-8 s) |
+| `npx vitest run` | 47 passed |
+| `npx tsc --noEmit`, `vite build` | clean / succeeded (bundle ≈ 1.69 MB, 475 kB gzip; single chunk, not code-split) |
+| `scripts/smoke_api.py` on the deployed API | 15/15 passed; informal single-run latencies: health 1.4 s (cold), simulate 2.2 s, optimize 3.7 s, Bedrock brief 5.1 s, export ≈ 1.1 s |
+| `scripts/e2e_flow.py` on the Amplify URL | 14/14 passed, 0 console errors |
+| Demo data (deterministic) | baseline: 0 exposed, 4/4 hospitals, 5.69 min avg; Extreme rainfall: 20,426 exposed, 34,600 with reduced hospital access, 61 roads affected / 3 closed, 3/4 hospitals; Extreme rainfall (160 mm, drainage 35 %) + R-019 closed + Balanced response (28.9 of 30 lakh): reduced-access people 62,300 -> 9,800, 22,300 person-service equivalents restored; preset 6 (Compound emergency + Balanced): reduced hospital access 27,400 -> 0, 19,767 restored; see docs/DEMO_SCRIPT.md |
+
+Latencies are single observations, not benchmarks. No load testing was performed.
+
+## Things the agent could not or did not do
+- No real users tested the product; no social-impact or adoption data exists.
+- Not load-tested; Lambda cold-start/latency numbers above are one-off observations.
+- No screen-reader audit; accessibility relies on semantic HTML, labels, keyboard operability of Radix controls, and non-colour status cues, verified only by unit tests and visual inspection.
+- The map was verified in desktop Chrome with software WebGL (SwiftShader); other browsers/GPUs were not tested.
+- Mobile layout is a stacked fallback and was checked only via screenshots at 390 px.
+- Rescue-team/evacuation resource types from the brief were not modelled (documented).
+
+## Environment side effects (user attention)
+`pip install aws-sam-cli` (and pydantic/pytest/boto3) was run against the **global** Python 3.12 and upgraded shared packages (`pydantic 2.13.5`, `rich 15.0.0`, `pyyaml 6.0.3`, `watchdog 4.0.2`); pip warned that this now conflicts with pins in `snowflake-cli 3.27.0` (needs `pydantic==2.12.5`, `pyyaml==6.0.2`, `rich==14.0.0`) and `strands-agents*` (`watchdog>=6`). If those tools are used from this interpreter, reinstall the pinned versions or use separate virtualenvs. Playwright was installed only in `build/e2e` (git-ignored). AWS resources created in the hackathon profile's account / us-east-1: CloudFormation stack `resilience-simulator` (HTTP API, 2 Lambdas, 1 S3 bucket, log group, IAM roles), Amplify app `dxhzlkmrgksnx`, and the SAM-managed artifact bucket.
+
+

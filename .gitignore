@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+.aws-sam/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+.DS_Store

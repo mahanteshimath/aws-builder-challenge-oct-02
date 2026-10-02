@@ -1,0 +1,18 @@
+{
+  "dataset_version": "sahyadri-synthetic-1.0",
+  "seed": 20261002,
+  "synthetic": true,
+  "label": "Sahyadri Resilience District - fictional, synthetic demonstration data",
+  "counts": {
+    "roads": 91,
+    "nodes": 63,
+    "facilities": 29,
+    "zones": 8,
+    "hazards": 6,
+    "infrastructure": 10,
+    "staging": 5,
+    "resources": 7,
+    "boundary": 1,
+    "river": 1
+  }
+}
