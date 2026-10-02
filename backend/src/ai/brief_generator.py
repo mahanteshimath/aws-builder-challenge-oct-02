@@ -43,7 +43,7 @@ def validate_brief(obj: dict, facts: dict) -> dict:
 
 def generate_brief(sim: dict, brief_type: str = "situation", allow_ai: bool = True, client=None) -> dict:
     facts = build_facts(sim)
-    meta = {"simulation_version": sim["simulation_version"], "dataset_version": sim["dataset_version"], "synthetic_data": True,
+    meta = {"simulation_version": sim["simulation_version"], "dataset_version": sim["dataset_version"], "synthetic_data": sim.get("synthetic_data", False),
             "brief_type": brief_type}
     if allow_ai and bedrock_enabled():
         try:

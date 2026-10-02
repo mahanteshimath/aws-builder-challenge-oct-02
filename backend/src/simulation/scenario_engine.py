@@ -19,8 +19,12 @@ from .interventions import TEMP_FACILITY, ScenarioError, resolve_interventions
 from .metrics import ASSUMPTIONS, METRIC_DEFINITIONS
 from .road_network import build_adjacency, dijkstra, haversine_m, path_roads
 
-SYNTHETIC_NOTICE = ("SYNTHETIC DEMONSTRATION DATA - fictional 'Sahyadri Resilience District'. Illustrative comparative "
-                    "planning model only; not official data, not a flood forecast, not an operational emergency system.")
+SYNTHETIC_DATA = False  # geography is real (OpenStreetMap + SRTM); populations, capacities and links are modeled
+DATA_NOTICE = ("REAL GEOGRAPHY, MODELED ATTRIBUTES - Kurla / Mithi River, Mumbai (BMC Ward L). Roads, bridges, river and facility "
+               "locations from OpenStreetMap (ODbL); terrain from SRTM. Populations (Census 2011 ward density), capacities, power "
+               "links, pumps and resources are modeled planning assumptions. Comparative planning model only; not official BMC data, "
+               "not a flood forecast, not an operational emergency system.")
+SYNTHETIC_NOTICE = DATA_NOTICE  # backwards-compatible name used by handlers/report
 STATUS_PENALTY_KEY = {"open": None, "degraded": "degraded_penalty", "restricted": "restricted_penalty"}
 SERVICE_TYPES = ("hospital", "shelter", "water")
 CRIT_TYPES = ("hospital", "shelter", "water", "emergency")
@@ -74,7 +78,7 @@ def static(ds: Dataset) -> dict:
         return _STATIC[key]
     road_assets, hazard_assets = {}, {}
     for rid, r in ds.roads.items():
-        road_assets[rid] = _asset_weights(ds, r.geometry[1])
+        road_assets[rid] = _asset_weights(ds, r.geometry[len(r.geometry) // 2])
     hcent = {}
     for hid, h in ds.hazards.items():
         ring = h.geometry[:-1]
@@ -202,11 +206,11 @@ def assess(ds: Dataset, ev: dict, base: dict, with_routes: bool = True) -> dict:
     zones_out, reduced_any_pop, reduced_pop = [], 0, {s: 0 for s in SERVICES}
     access_units = 0.0
     no_route_zones, hosp_time_num, hosp_time_den = [], 0.0, 0
-    reduced_count_by_zone = {}
+    reduced_count_by_zone, severity_by_zone = {}, {}
     reach_by_zone = {}
     for zid, z in ds.zones.items():
         tz, bz = ev["times"][zid], base["times"][zid]
-        services, reduced_n, no_feasible = {}, 0, False
+        services, reduced_n, severity, no_feasible = {}, 0, 0.0, False
         reach_by_zone[zid] = {}
         for s in SERVICES:
             thr = SERVICE_THRESHOLD[s]
@@ -220,6 +224,8 @@ def assess(ds: Dataset, ev: dict, base: dict, with_routes: bool = True) -> dict:
             if red:
                 reduced_n += 1
                 reduced_pop[s] += z.estimated_population
+                # severity: cut off / beyond threshold = 1.0, reachable within threshold but materially delayed = 0.5
+                severity += 1.0 if (t is None or t > thr) else 0.5
             services[s] = {"best_facility_id": fid, "minutes": None if t is None else round(t, 2),
                            "baseline_facility_id": bfid, "baseline_minutes": None if bt is None else round(bt, 2),
                            "threshold_minutes": thr, "reduced": red, "no_route": t is None,
@@ -232,10 +238,11 @@ def assess(ds: Dataset, ev: dict, base: dict, with_routes: bool = True) -> dict:
         if no_feasible:
             no_route_zones.append(zid)
         reduced_count_by_zone[zid] = reduced_n
+        severity_by_zone[zid] = severity
         ex = ev["exposure"][zid]
         status = "isolated" if no_feasible else "reduced_access" if reduced_n else "exposed" if ex["exposed_fraction"] > 0 else "normal"
         zones_out.append({"id": zid, "name": z.name, "population": z.estimated_population, **ex, "status": status,
-                          "services": services, "reduced_service_count": reduced_n})
+                          "services": services, "reduced_service_count": reduced_n, "reduced_severity": severity})
 
     facs_out, lost_facs, op_affected, elec_affected = [], [], 0, 0
     cap_avail = shelter_cap = 0.0
@@ -331,7 +338,7 @@ def assess(ds: Dataset, ev: dict, base: dict, with_routes: bool = True) -> dict:
             "power": {p: v["failed"] for p, v in ev["power"].items()},
             "drainage": {d: v["failed"] for d, v in ev["drainage"].items()},
         },
-        "_reduced_count_by_zone": reduced_count_by_zone,
+        "_reduced_count_by_zone": reduced_count_by_zone, "_severity_by_zone": severity_by_zone,
     }
     if with_routes:
         block["routes"], block["alternative_routes"] = _routes(ds, ev, base)
@@ -471,8 +478,8 @@ def build_comparison(base: dict, dis: dict, rec: Optional[dict]) -> list[dict]:
 def recovery_summary(ds: Dataset, dis: dict, rec: dict, budget: float) -> dict:
     restored = 0.0
     for z in ds.zones.values():
-        delta = dis["_reduced_count_by_zone"][z.id] - rec["_reduced_count_by_zone"][z.id]
-        restored += z.estimated_population * max(0, delta) / 3.0
+        delta = dis["_severity_by_zone"][z.id] - rec["_severity_by_zone"][z.id]
+        restored += z.estimated_population * max(0.0, delta) / 3.0
     fac_before = {f["id"]: f["display_status"] for f in dis["facilities"]}
     restored_f = [f["id"] for f in rec["facilities"] if fac_before.get(f["id"]) in ("inaccessible", "operationally_affected")
                   and f["display_status"] in ("accessible", "accessible_with_delay")]
@@ -539,7 +546,7 @@ def run_scenario(s: Scenario, ds: Optional[Dataset] = None, with_timeline: bool 
     timeline = build_timeline(ds, s, base, dis, rec, base_ev) if with_timeline else []
     warnings = _warnings(s, base, dis, rec)
     return {
-        "simulation_version": SIMULATION_VERSION, "dataset_version": ds.version, "synthetic_data": True,
+        "simulation_version": SIMULATION_VERSION, "dataset_version": ds.version, "synthetic_data": SYNTHETIC_DATA,
         "data_label": SYNTHETIC_NOTICE, "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "scenario": s.model_dump(), "baseline": _strip(base), "disaster": _strip(dis), "recovery": _strip(rec),
         "comparison": build_comparison(base, dis, rec), "recovery_summary": rec_summary, "timeline": timeline,
@@ -549,9 +556,9 @@ def run_scenario(s: Scenario, ds: Optional[Dataset] = None, with_timeline: bool 
 
 
 def _warnings(s: Scenario, base: dict, dis: dict, rec: Optional[dict]) -> list[str]:
-    w = ["Modeled estimates for comparative planning only; synthetic data; not a forecast."]
+    w = ["Modeled estimates for comparative planning only; real geography with modeled attributes; not a forecast."]
     if base["metrics"]["pop_reduced_any"] > 0:
-        w.append(f"{base['metrics']['pop_reduced_any']:,} residents are already beyond an accessibility threshold at baseline (structural service gap in the synthetic district).")
+        w.append(f"{base['metrics']['pop_reduced_any']:,} residents are already beyond an accessibility threshold at baseline (structural service gap in the modeled network).")
     if s.rainfall_mm == 0 and not s.closed_road_ids and not s.affected_power_nodes and not s.failed_facility_ids and not s.failed_drainage_ids:
         w.append("No hazard or failure inputs selected: disaster state equals baseline.")
     if s.rainfall_mm > 150:

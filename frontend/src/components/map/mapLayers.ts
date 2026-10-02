@@ -15,7 +15,7 @@ export const INTERACTIVE_LAYERS = ['facilities', 'response-dot', 'infra-power', 
 const empty = fc([])
 
 export function addMapLayers(map: MlMap, ds: Dataset) {
-  const add = (id: string, data: unknown) => { if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: data as never, promoteId: 'id' }) }
+  const add = (id: string, data: unknown) => { if (!map.getSource(id)) map.addSource(id, { type: 'geojson', data: data as never, promoteId: 'id', attribution: '© OpenStreetMap contributors (ODbL) · SRTM' }) }
   map.addSource('osm', { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19, attribution: '© OpenStreetMap contributors' })
   add('boundary', ds.layers.boundary); add('river', ds.layers.river)
   for (const s of SOURCES) add(s, empty)

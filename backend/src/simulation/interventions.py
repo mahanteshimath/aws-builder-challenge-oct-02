@@ -24,7 +24,8 @@ def units_available(res, availability: float) -> int:
 
 def target_position(ds, rtype: str, target_id: str):
     if rtype == "road_clearance_team":
-        return ds.roads[target_id].geometry[1]
+        g = ds.roads[target_id].geometry
+        return g[len(g) // 2]
     if rtype == "portable_generator":
         if target_id in ds.facilities:
             return ds.facilities[target_id].geometry

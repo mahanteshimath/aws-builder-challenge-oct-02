@@ -9,11 +9,13 @@ param(
   [string]$BedrockBaseModelId = "amazon.nova-lite-v1:0"
 )
 $ErrorActionPreference = "Stop"
+# Tag every AWS CLI / SAM call so CloudTrail shows it came from the coding agent workflow (userAgent contains app/cortex-code-agent)
+if (-not $env:AWS_SDK_UA_APP_ID) { $env:AWS_SDK_UA_APP_ID = "cortex-code-agent" }
 $env:AWS_PROFILE = $Profile; $env:AWS_REGION = $Region; $env:SAM_CLI_TELEMETRY = "0"
 Set-Location (Split-Path $PSScriptRoot -Parent)
 
 Write-Host "1/6 Identity"; aws sts get-caller-identity --query Arn --output text
-Write-Host "2/6 Generate deterministic dataset + tests"; python backend/src/data/generate_demo_data.py; python -m pytest backend -q
+Write-Host "2/6 Build deterministic Kurla dataset (cached OSM + SRTM) + tests"; python backend/src/data/build_kurla_dataset.py; python -m pytest backend -q
 Write-Host "3/6 Amplify app"
 if (-not $AmplifyAppId) { $AmplifyAppId = aws amplify create-app --name resilience-simulator --platform WEB --query app.appId --output text; aws amplify create-branch --app-id $AmplifyAppId --branch-name main --stage PRODUCTION | Out-Null }
 $origin = "https://main.$AmplifyAppId.amplifyapp.com"

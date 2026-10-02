@@ -61,7 +61,8 @@ export function responseData(ds: Dataset, result: SimulationResponse | null): Ge
     let pos: [number, number] | null = null
     if (i.resource_type === 'road_clearance_team') {
       const r = ds.layers.roads.features.find((f) => f.properties.id === i.target_id)
-      pos = r ? (r.geometry.coordinates as [number, number][])[1] : null
+      const line = r ? (r.geometry.coordinates as [number, number][]) : null
+      pos = line ? line[Math.floor(line.length / 2)] : null
     } else if (i.resource_type === 'portable_generator') {
       const f = [...ds.layers.facilities.features, ...ds.layers.infrastructure.features].find((x) => x.properties.id === i.target_id)
       pos = f ? (f.geometry.coordinates as [number, number]) : null

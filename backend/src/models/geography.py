@@ -77,6 +77,7 @@ class PopulationZone(BaseModel):
     mobility_constraint_factor: float = Field(gt=0)
     anchor_node_id: str
     bbox_grid: list[float]
+    sample_points: list[list[float]] = []
     nearest_facility_ids: list[str] = []
 
 

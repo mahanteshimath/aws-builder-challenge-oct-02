@@ -30,7 +30,7 @@ export function ResourceAllocationPanel() {
       {plan.not_completed.length > 0 && (
         <div><h4 className="label-xs mb-1">Beneficial interventions that could not be completed</h4>
           <ul className="space-y-0.5 text-[11px]">{plan.not_completed.map((n) => <li key={`${n.resource_id}-${n.target_id}`} className="flex gap-2"><Badge tone="warn">skipped</Badge><span>{RESOURCE_LABEL[n.resource_type]} → {n.target_id} {n.target_name} <span className="text-muted">({fmtNum(n.cost, 1)}) - {n.reason}</span></span></li>)}</ul></div>)}
-      <p className="text-[10px] text-muted">{plan.method} Evaluated {fmtInt(plan.candidates_evaluated)} feasible candidates; {fmtInt(plan.candidates_with_benefit)} had standalone modeled benefit. All values are modeled estimates on synthetic data.</p>
+      <p className="text-[10px] text-muted">{plan.method} Evaluated {fmtInt(plan.candidates_evaluated)} feasible candidates; {fmtInt(plan.candidates_with_benefit)} had standalone modeled benefit. All values are modeled estimates (real geography, modeled costs and capacities).</p>
     </div>
   )
 }

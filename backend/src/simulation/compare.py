@@ -35,5 +35,5 @@ def compare_scenarios(scenarios: list[Scenario], ds=None) -> dict:
               "budget_consumed": (s["recovery"] or s["disaster"])["metrics"]["budget_consumed"],
               "resources_deployed": (s["recovery"] or s["disaster"])["metrics"]["resources_deployed"],
               "population_access_restored": (s["recovery_summary"] or {}).get("population_access_restored", 0)} for s in sims]
-    return {"simulation_version": sims[0]["simulation_version"], "synthetic_data": True, "data_label": sims[0]["data_label"],
+    return {"simulation_version": sims[0]["simulation_version"], "synthetic_data": sims[0]["synthetic_data"], "data_label": sims[0]["data_label"],
             "metrics": rows, "zone_accessibility": zones, "resource_tradeoffs": trade}

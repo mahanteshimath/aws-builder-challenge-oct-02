@@ -34,7 +34,7 @@ export function SituationBrief() {
             <p className="mt-1 text-muted">{brief.provider_label}</p>
             {brief.model_id && <p className="font-mono text-[10px] text-muted">{brief.model_id}</p>}
             {brief.fallback_reason && <p className="mt-1 text-warn">{REASON[brief.fallback_reason] ?? brief.fallback_reason}</p>}
-            <p className="mt-1 text-[10px] text-muted">Sim v{brief.simulation_version} · synthetic data</p>
+            <p className="mt-1 text-[10px] text-muted">Sim v{brief.simulation_version} · OSM geography, modeled attributes</p>
           </div>)}
       </div>
       <div className="min-w-0">

@@ -3,11 +3,12 @@ import pytest
 from src.models.scenario import Intervention, Scenario
 from src.simulation.dataset import get_dataset
 from src.simulation.interventions import ScenarioError
+from src.simulation.presets import MAJOR_ROAD, OUTAGE_POWER_NODE
 from src.simulation.response_optimizer import STRATEGIES, optimize, optimize_and_run
 from src.simulation.scenario_engine import run_scenario
 
 DS = get_dataset()
-COMPOUND = Scenario(rainfall_mm=150, drainage_effectiveness=0.4, closed_road_ids=["R-019"], affected_power_nodes=["P-02"], resource_budget=30)
+COMPOUND = Scenario(rainfall_mm=150, drainage_effectiveness=0.4, closed_road_ids=[MAJOR_ROAD], affected_power_nodes=[OUTAGE_POWER_NODE], resource_budget=30)
 
 
 @pytest.fixture(scope="module")
@@ -68,7 +69,8 @@ def test_over_budget_manual_deployment_rejected():
 
 
 def test_over_resource_manual_deployment_rejected():
-    iv = [Intervention(resource_id="RES-MED1", resource_type="temporary_medical_unit", target_id=z) for z in ("Z-01", "Z-02")]
+    iv = [Intervention(resource_id="RES-MED1", resource_type="temporary_medical_unit", target_id=z)
+          for z in sorted(DS.zones)[:DS.resources["RES-MED1"].quantity_available + 1]]
     with pytest.raises(ScenarioError):
         run_scenario(COMPOUND.model_copy(update={"resource_budget": 500, "deployed_resources": iv}), with_timeline=False)
 
@@ -99,3 +101,16 @@ def test_generator_restores_facility_capacity():
     assert h(r["disaster"]) == 0 and h(r["recovery"]) > 0
     assert r["recovery_summary"]["budget_remaining"] == pytest.approx(10 - r["recovery"]["metrics"]["budget_consumed"])
 
+
+
+def test_reconnecting_a_cut_off_zone_earns_recovery_credit():
+    """Reopening a closed bridge that turns 'no route' into 'reachable but slower' must count as partial recovery."""
+    s = Scenario(rainfall_mm=160, drainage_effectiveness=0.35, closed_road_ids=[MAJOR_ROAD], resource_budget=30)
+    iv = [Intervention(resource_id="RES-RC1", resource_type="road_clearance_team", target_id=MAJOR_ROAD)]
+    r = run_scenario(s.model_copy(update={"deployed_resources": iv}), with_timeline=False, with_bottlenecks=False)
+    cut_off = [z for z in r["disaster"]["zones"] if z["services"]["hospital"]["no_route"]]
+    assert cut_off, "scenario should isolate at least one zone from every hospital"
+    rec = {z["id"]: z for z in r["recovery"]["zones"]}
+    assert all(not rec[z["id"]]["services"]["hospital"]["no_route"] for z in cut_off)
+    assert all(rec[z["id"]]["reduced_severity"] < z["reduced_severity"] for z in cut_off)
+    assert r["recovery_summary"]["population_access_restored"] > 0

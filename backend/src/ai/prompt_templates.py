@@ -17,8 +17,8 @@ METRIC_KEYS = ["exposed_population", "pop_reduced_hospital", "pop_reduced_shelte
 
 SYSTEM_PROMPT = (
     "You are a disaster-resilience analyst writing a brief for emergency planners. You explain the output of a deterministic "
-    "simulation of a FICTIONAL, SYNTHETIC district. Rules: (1) Use ONLY the JSON facts provided; never invent roads, facilities, "
-    "zones, numbers or events. (2) Cite specific identifiers (e.g. R-019, H-02, Z-03) and metrics from the facts. (3) Call figures "
+    "simulation of Kurla / Mithi River, Mumbai: real OpenStreetMap geography with MODELED populations, capacities and infrastructure links. Rules: (1) Use ONLY the JSON facts provided; never invent roads, facilities, "
+    "zones, numbers or events. (2) Cite specific identifiers (e.g. R-059, H-01, Z-02) and metrics from the facts. (3) Call figures "
     "'modeled estimates'; never present them as real-world impacts or forecasts. (4) Do not claim a road or facility is affected "
     "unless the facts show it. (5) Be concise. Respond with ONE JSON object only (no markdown) with exactly these keys: "
     "situation_summary (string), top_impacts (array of exactly 3 strings), critical_bottlenecks (array of strings), "
@@ -41,7 +41,7 @@ def build_facts(sim: dict) -> dict:
               "status": z["status"], "hospital_minutes": z["services"]["hospital"]["minutes"],
               "baseline_hospital_minutes": z["services"]["hospital"]["baseline_minutes"]} for z in dis["zones"]]
     facts = {
-        "simulation_version": sim["simulation_version"], "dataset_version": sim["dataset_version"], "synthetic_data": True,
+        "simulation_version": sim["simulation_version"], "dataset_version": sim["dataset_version"], "synthetic_data": sim.get("synthetic_data", False),
         "scenario": {k: s[k] for k in ("name", "rainfall_mm", "duration_hours", "drainage_effectiveness", "closed_road_ids",
                                        "affected_power_nodes", "failed_drainage_ids", "failed_facility_ids", "resource_budget", "strategy")},
         "metrics": {"baseline": _m(sim["baseline"]), "disaster": _m(dis), "recovery": _m(rec)},
@@ -59,7 +59,7 @@ def build_facts(sim: dict) -> dict:
             "budget_remaining": sim["recovery_summary"]["budget_remaining"],
             "population_access_restored": sim["recovery_summary"]["population_access_restored"]},
         "assumptions": sim["assumptions"][:6],
-        "limitations": ["Synthetic illustrative data", "Not a flood forecast", "Modeled estimates for comparative planning only"],
+        "limitations": ["Real geography but modeled populations, capacities and infrastructure links", "Not a flood forecast", "Modeled estimates for comparative planning only"],
     }
     return facts
 

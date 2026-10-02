@@ -3,6 +3,7 @@ import json
 from src.models.scenario import Scenario
 from src.simulation.accessibility import pair_status, service_reduced
 from src.simulation.dataset import get_dataset
+from src.simulation.presets import MAJOR_ROAD, OUTAGE_POWER_NODE
 from src.simulation.scenario_engine import assess, conditions_from, evaluate, get_baseline, run_scenario
 
 DS = get_dataset()
@@ -22,14 +23,14 @@ def test_pair_status_rules():
 
 def test_baseline_reproducible_and_clean():
     a = run_scenario(Scenario(), with_timeline=False)["baseline"]
-    b = run_scenario(Scenario(rainfall_mm=170, closed_road_ids=["R-019"]), with_timeline=False)["baseline"]
+    b = run_scenario(Scenario(rainfall_mm=170, closed_road_ids=[MAJOR_ROAD]), with_timeline=False)["baseline"]
     assert a["metrics"] == b["metrics"]  # baseline ignores disaster inputs
     assert a["metrics"]["roads_affected"] == 0 and a["metrics"]["exposed_population"] == 0
     assert a["metrics"]["hospitals_accessible"] == 4
 
 
 def test_identical_inputs_identical_outputs():
-    s = Scenario(rainfall_mm=140, drainage_effectiveness=0.4, closed_road_ids=["R-019"], affected_power_nodes=["P-02"])
+    s = Scenario(rainfall_mm=140, drainage_effectiveness=0.4, closed_road_ids=[MAJOR_ROAD], affected_power_nodes=[OUTAGE_POWER_NODE])
     a, b = run_scenario(s), run_scenario(s)
     for r in (a, b):
         r.pop("generated_at")
@@ -49,7 +50,7 @@ def test_more_rain_never_reduces_hazard_for_same_feature():
 def test_closing_a_road_never_improves_reachability():
     base_s = Scenario(rainfall_mm=90)
     base_ev = evaluate(DS, conditions_from(base_s))
-    for rid in ["R-019", "R-055", "R-063", "R-021"]:
+    for rid in [MAJOR_ROAD] + sorted(DS.roads, key=lambda r: -DS.roads[r].criticality_score)[:3]:
         ev = evaluate(DS, conditions_from(Scenario(rainfall_mm=90, closed_road_ids=[rid])))
         for zid in DS.zones:
             for fid, t in base_ev["times"][zid].items():
@@ -115,7 +116,7 @@ def test_exposure_counts_each_zone_once_and_bounded():
 
 
 def test_timeline_stages_are_explicit_states():
-    r = run_scenario(Scenario(rainfall_mm=150, closed_road_ids=["R-019"], affected_power_nodes=["P-02"]))
+    r = run_scenario(Scenario(rainfall_mm=150, closed_road_ids=[MAJOR_ROAD], affected_power_nodes=[OUTAGE_POWER_NODE]))
     tl = r["timeline"]
     assert [t["t_minutes"] for t in tl] == [0, 15, 30, 45, 60, 90]
     exposed = [t["metrics"]["exposed_population"] for t in tl[:5]]
@@ -137,8 +138,8 @@ def test_bottlenecks_identify_critical_roads():
     assert "explanation" in r["bottlenecks"][0]
 
 
-def test_results_carry_synthetic_label():
+def test_results_carry_data_provenance_label():
     r = run_scenario(Scenario(rainfall_mm=50), with_timeline=False)
-    assert r["synthetic_data"] is True and "SYNTHETIC" in r["data_label"]
+    assert r["synthetic_data"] is False and "MODELED ATTRIBUTES" in r["data_label"] and "OpenStreetMap" in r["data_label"]
     assert r["metric_definitions"] and r["assumptions"]
 

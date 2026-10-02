@@ -1,11 +1,35 @@
 {
-  "dataset_version": "sahyadri-synthetic-1.0",
-  "seed": 20261002,
-  "synthetic": true,
-  "label": "Sahyadri Resilience District - fictional, synthetic demonstration data",
+  "dataset_version": "kurla-mithi-osm-1.0",
+  "synthetic": false,
+  "modeled_attributes": true,
+  "label": "Kurla / Mithi River, Mumbai - real OpenStreetMap + SRTM geography with modeled planning attributes",
+  "study_area_bbox": [
+    72.86,
+    19.0595,
+    72.899,
+    19.0905
+  ],
+  "osm_snapshot": "2026-10-02T15:51:21Z",
+  "license": "Roads, river, facilities and place names (c) OpenStreetMap contributors, ODbL 1.0. Terrain: SRTM 30 m (public domain).",
+  "sources": {
+    "roads_facilities_river_places": "OpenStreetMap (Overpass API), ODbL 1.0",
+    "terrain": "SRTM 30 m via OpenTopoData",
+    "population_density": "Census 2011 BMC Ward L: 892,278 people / 13.46 km2"
+  },
+  "modeled": [
+    "zone boundaries (Voronoi of OSM neighbourhood points)",
+    "zone populations",
+    "facility capacities",
+    "backup power",
+    "power-dependency links",
+    "3 of 4 power nodes",
+    "5 of 6 drainage pumps",
+    "response resources and costs",
+    "flood susceptibility index"
+  ],
   "counts": {
-    "roads": 91,
-    "nodes": 63,
+    "roads": 150,
+    "nodes": 105,
     "facilities": 29,
     "zones": 8,
     "hazards": 6,

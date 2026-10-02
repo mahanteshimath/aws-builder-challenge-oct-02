@@ -12,7 +12,7 @@ def fallback_brief(facts: dict) -> dict:
     sc = facts["scenario"]
     d, b = facts["metrics"]["disaster"], facts["metrics"]["baseline"]
     rec = facts["metrics"]["recovery"]
-    summary = (f"Scenario '{sc['name']}' (modeled, synthetic data): {sc['rainfall_mm']:g} mm over {sc['duration_hours']:g} h with drainage effectiveness "
+    summary = (f"Scenario '{sc['name']}' (modeled; real Kurla geography, modeled attributes): {sc['rainfall_mm']:g} mm over {sc['duration_hours']:g} h with drainage effectiveness "
                f"{sc['drainage_effectiveness']:g}. Estimated exposure is {_fmt(d['exposed_population'])} people; {d['roads_affected']} road segments are affected "
                f"({d['roads_closed']} closed); {d['facilities_operationally_affected']} facilities run below normal capacity and "
                f"{d['zones_no_feasible_route']} zone(s) have no feasible route to at least one essential service within threshold.")
@@ -31,8 +31,10 @@ def fallback_brief(facts: dict) -> dict:
                  for f in facts["affected_facilities"][:6]] or ["No essential service is modeled as affected."]
     imm, fol, trade = [], [], []
     closed = [r for r in facts["affected_roads"] if r["status"] == "closed"]
-    if closed:
-        imm.append(f"Prioritise reopening or bypass planning for closed road(s) {', '.join(r['id'] for r in closed[:4])}.")
+    explicit = list(sc.get("closed_road_ids") or [])
+    closed_ids = explicit + [r["id"] for r in closed if r["id"] not in explicit]  # user-selected closures first
+    if closed_ids:
+        imm.append(f"Prioritise reopening or bypass planning for closed road(s) {', '.join(closed_ids[:4])}.")
     off = [f for f in facts["affected_facilities"] if f["operational_status"] != "operational"]
     if off:
         imm.append(f"Secure backup power for {', '.join(f['id'] for f in off[:4])}.")
@@ -50,6 +52,6 @@ def fallback_brief(facts: dict) -> dict:
                      f"{_fmt(resp['population_access_restored'])} person-service equivalents; residual reduced-access population {_fmt(rec['pop_reduced_any'])}.")
     else:
         trade.append(f"No response deployed. Budget available: {sc['resource_budget']:g}. Run the optimizer to compare strategies.")
-    unc = ["All data is synthetic and illustrative; results are modeled estimates, not forecasts.",
+    unc = ["Geography is real (OpenStreetMap) but populations, capacities and infrastructure links are modeled; results are modeled estimates, not forecasts.",
            "Flood thresholds are configurable and uncalibrated; population exposure assumes uniform density within zones."]
     return dict(zip(SECTION_KEYS, [summary, impacts, bn, attention, imm, fol, trade, unc]))

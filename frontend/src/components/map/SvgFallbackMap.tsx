@@ -23,9 +23,9 @@ export function SvgFallbackMap({ ds, reason }: { ds: Dataset; reason: string }) 
   return (
     <div className="relative h-full w-full bg-ink" data-testid="svg-fallback-map">
       <p className="absolute left-2 top-2 z-10 max-w-sm rounded border border-warn/40 bg-panel/90 p-2 text-[11px] text-warn" role="status">
-        Interactive map unavailable ({reason}). Showing a simplified local-data view of the synthetic district.
+        Interactive map unavailable ({reason}). Showing a simplified local-data view of the Kurla study area (© OpenStreetMap contributors).
       </p>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" role="img" aria-label="Simplified map of the synthetic district">
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" role="img" aria-label="Simplified map of the Kurla / Mithi River study area">
         {ds.layers.zones.features.map((f) => (
           <polygon key={f.properties.id} points={(f.geometry.coordinates as number[][][])[0].map((p) => project(p).join(',')).join(' ')} fill="#1e3a5f" fillOpacity={0.3} stroke="#2a3d63" strokeDasharray="4 4" />
         ))}

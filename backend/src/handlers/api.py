@@ -14,7 +14,7 @@ from ..simulation.compare import compare_scenarios
 from ..simulation.dataset import get_dataset
 from ..simulation.presets import presets
 from ..simulation.response_optimizer import STRATEGIES, optimize_and_run
-from ..simulation.scenario_engine import SYNTHETIC_NOTICE, run_scenario
+from ..simulation.scenario_engine import SYNTHETIC_DATA, SYNTHETIC_NOTICE, run_scenario
 from .common import ApiError, error_response, parse_body, response, route_of, safe, validate
 
 log = logging.getLogger()
@@ -27,7 +27,7 @@ def h_health(event):
     from ..ai.bedrock_client import bedrock_enabled, model_id
     ds = get_dataset()
     return response(200, {"status": "ok", "simulation_version": SIMULATION_VERSION, "dataset_version": ds.version,
-                          "synthetic_data": True, "ai_provider": {"bedrock_enabled": bedrock_enabled(),
+                          "synthetic_data": SYNTHETIC_DATA, "data_label": SYNTHETIC_NOTICE, "ai_provider": {"bedrock_enabled": bedrock_enabled(),
                                                                   "model_id": model_id() if bedrock_enabled() else None,
                                                                   "fallback": "rule_based"}})
 
@@ -39,7 +39,7 @@ def h_dataset(event):
         f["properties"]["criticality_score"] = ds.roads[f["id"]].criticality_score
     resources = [r.model_dump() for r in ds.resources.values()]
     return response(200, {
-        "dataset_version": ds.version, "simulation_version": SIMULATION_VERSION, "synthetic_data": True, "data_label": SYNTHETIC_NOTICE,
+        "dataset_version": ds.version, "simulation_version": SIMULATION_VERSION, "synthetic_data": SYNTHETIC_DATA, "data_label": SYNTHETIC_NOTICE,
         "layers": layers, "presets": presets(),
         "strategies": [{"id": k, "label": v["label"], "description": v["description"], "weights": v["weights"]} for k, v in STRATEGIES.items()],
         "resources": resources, "default_thresholds": Thresholds().model_dump(), "service_thresholds_minutes": SERVICE_THRESHOLD,

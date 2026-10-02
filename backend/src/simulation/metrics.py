@@ -46,14 +46,15 @@ METRIC_DEFINITIONS = {
     "budget_consumed": {"label": "Budget consumed", "unit": "INR lakh (illustrative)", "better": "neutral",
         "definition": "Sum of deployment and repair costs of deployed interventions."},
     "population_access_restored": {"label": "Modeled population access restored", "unit": "person-service equivalents", "better": "higher",
-        "definition": "Sum over zones of population x (reduced services in disaster - reduced services in recovery) / 3, floored at 0."},
+        "definition": "Sum over zones of population x (service-access severity in disaster - severity in recovery) / 3, floored at 0. Per service: cut off or beyond threshold = 1, reachable within threshold but materially delayed = 0.5, normal = 0."},
 }
 
 ASSUMPTIONS = [
-    "All geography, populations, facilities and infrastructure are SYNTHETIC illustrative data for a fictional district.",
+    "Geography is real: Kurla / Mithi River roads, bridges, river and facility locations from OpenStreetMap (ODbL) and terrain from SRTM 30 m.",
+    "Zone populations (Census 2011 Ward L density x built-up share), facility capacities, backup power, power links, 5 of 6 pumps, 3 of 4 power nodes and response resources are MODELED planning assumptions, not official BMC data.",
     "The flood model is a transparent conceptual index for comparative planning; it is not calibrated and is not a flood forecast.",
     "Flood risk = rainfall intensity factor x susceptibility x (1 - drainage effectiveness) x exposure factor x gain (clamped 0..1).",
-    "Road states: Watch -> degraded (x1.4 time), Flood risk -> restricted (x3.0 time), Impassable or explicit closure -> closed (removed from routing).",
+    "Road states: Watch -> degraded (x1.3 time), Flood risk -> restricted (x2.5 time), Impassable or explicit closure -> closed (removed from routing).",
     "Travel times use shortest paths on the road graph (Dijkstra); straight-line distance is never used for accessibility.",
     "Power is a simplified dependency model (facility -> power node). Substations fail when flood risk is Impassable or when selected.",
     "Backup power: 60% capacity within rated hours, 25% once exhausted; portable generators restore 85%.",

@@ -30,7 +30,10 @@ def test_road_with_unknown_node_rejected():
         build_dataset(layers)
 
 
-def test_dataset_is_labeled_synthetic():
+def test_dataset_carries_provenance_and_license():
     for coll in _read_layers().values():
-        assert coll["properties"]["synthetic"] is True
-    assert json.dumps(_read_layers()["roads"]).count("Synthetic") >= 1
+        assert coll["properties"]["synthetic"] is False and coll["properties"]["modeled_attributes"] is True
+        assert "OpenStreetMap" in coll["properties"]["license"]
+    roads = _read_layers()["roads"]["features"]
+    assert all(f["properties"]["osm_way_id"] for f in roads)
+    assert any(f["properties"]["crosses_mithi"] for f in roads)

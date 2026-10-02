@@ -44,7 +44,7 @@ function ZoneView({ z }: { z: ZoneResult }) {
     <div className="space-y-2">
       <div className="flex flex-wrap gap-1"><Badge tone={tone(z.status)}>{label(z.status)}</Badge></div>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px]">
-        <Row k="Population (synthetic)" v={fmtInt(z.population)} />
+        <Row k="Population (modeled)" v={fmtInt(z.population)} />
         <Row k="Estimated exposure" v={`${fmtInt(z.exposed_population)} (${Math.round(z.exposed_fraction * 100)}%)`} />
         <Row k="Vulnerability-weighted" v={fmtInt(z.vulnerability_weighted_exposure)} />
       </dl>
@@ -77,7 +77,7 @@ export function FeatureInspector() {
     title = g?.name ?? sel.id
     body = <div className="space-y-1.5 text-[11px]"><Badge tone={tone(h?.hazard_class ?? 'normal')}>{label(h?.hazard_class ?? 'normal')}</Badge>
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1"><Row k="Modeled flood risk" v={fmtNum(h?.risk, 2)} /><Row k="Susceptibility" v={fmtNum(g?.susceptibility_score, 2)} /><Row k="Local drainage" v={fmtNum(g?.drainage_effectiveness, 2)} /><Row k="Exposure factor" v={fmtNum(g?.exposure_factor, 2)} /></dl>
-      <p className="text-muted">Candidate flood-prone area (synthetic). Risk is a comparative index, not a forecast.</p></div>
+      <p className="text-muted">Candidate flood-prone area derived from SRTM terrain and Mithi / nala proximity. Risk is a comparative index, not a forecast.</p></div>
   } else if (sel.kind === 'power' || sel.kind === 'drainage') {
     const info = sel.kind === 'power' ? block?.power[sel.id] : block?.drainage[sel.id]
     const name = (sel.kind === 'power' ? ds.catalog.power_nodes : ds.catalog.drainage).find((x) => x.id === sel.id)?.name ?? sel.id

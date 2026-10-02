@@ -45,7 +45,7 @@ def test_dataset_road_graph_is_connected_at_baseline():
 
 def test_dataset_counts_and_wgs84():
     ds = get_dataset()
-    assert 80 <= len(ds.roads) <= 150 and 5 <= len(ds.zones) <= 8 and 3 <= len(ds.facilities_by_type("hospital")) <= 5 if hasattr(ds, "facilities_by_type") else True
+    assert 80 <= len(ds.roads) <= 200 and 5 <= len(ds.zones) <= 8 and 3 <= len(ds.facilities_by_type("hospital")) <= 5 if hasattr(ds, "facilities_by_type") else True
     for r in ds.roads.values():
         for lon, lat in r.geometry:
             assert 60 < lon < 100 and 5 < lat < 40 and math.isfinite(lon)

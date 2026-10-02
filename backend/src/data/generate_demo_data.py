@@ -1,4 +1,7 @@
-"""Deterministic generator for the synthetic "Sahyadri Resilience District" dataset.
+"""LEGACY: deterministic generator for the original synthetic "Sahyadri Resilience District" dataset.
+
+The deployed app now uses backend/src/data/build_kurla_dataset.py (real OpenStreetMap geography of Kurla, Mumbai).
+Running this script OVERWRITES backend/src/data/geojson with the synthetic district; kept for reference and tests of the engine.
 
 ALL DATA PRODUCED HERE IS SYNTHETIC AND ILLUSTRATIVE. It is not official municipal data.
 Run:  python backend/src/data/generate_demo_data.py

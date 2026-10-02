@@ -27,7 +27,7 @@ def _reduced_units(ds, block: dict, weighted: bool) -> tuple[float, float]:
     for z in block["zones"]:
         zz = ds.zones[z["id"]]
         w = zz.vulnerability_weight * zz.mobility_constraint_factor if weighted else 1.0
-        num += zz.estimated_population * w * z["reduced_service_count"] / 3.0
+        num += zz.estimated_population * w * z["reduced_severity"] / 3.0  # reconnecting a cut-off zone earns partial credit
         den += zz.estimated_population * w
     return num, den
 

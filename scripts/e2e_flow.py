@@ -27,26 +27,41 @@ with sync_playwright() as p:
     time.sleep(5.5)  # timeline playback
     pg.screenshot(path=f"{OUT}_02_extreme.png")
     exposed = pg.inner_text("[data-testid=m-exposed]")
-    check("extreme shows exposure", "20,426" in exposed or any(d in exposed.split("\n")[1] for d in "123456789"), exposed.replace("\n", " ")[:80])
+    import re as _re
+    nums = [int(x.replace(",", "")) for x in _re.findall(r"\d[\d,]*", exposed)]
+    check("extreme shows exposure", bool(nums) and nums[0] > 0, exposed.replace("\n", " ")[:80])
     feats = pg.evaluate("window.__rsMap.querySourceFeatures('roads').filter(f=>f.properties.status==='closed'||f.properties.status==='restricted').length")
     check("map roads restricted/closed after sim", feats > 0, str(feats))
     hz = pg.evaluate("[...new Set(window.__rsMap.querySourceFeatures('hazards').map(f=>f.properties.cls))]")
     check("hazard zones classified on map", any(c != "normal" for c in hz), str(hz))
 
     # Step 3: click a road on the map, close it
-    px = pg.evaluate("""() => { const m = window.__rsMap; const f = m.querySourceFeatures('roads').find(f=>f.properties.id==='R-019'); const c = f.geometry.coordinates[1]; const p = m.project(c); const r = m.getCanvas().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; }""")
+    # Real OSM geometry: stacked flyovers overlap, so zoom to the road and click a pixel where it is the topmost hit target.
+    pg.evaluate("""() => { const m = window.__rsMap; const f = m.querySourceFeatures('roads').find(f=>f.properties.id==='R-059'); const g = f.geometry.coordinates; m.jumpTo({ center: g[Math.floor(g.length / 2)], zoom: 16.5 }); }""")
+    pg.wait_for_timeout(1500)
+    px = pg.evaluate("""() => { const m = window.__rsMap; const r = m.getCanvas().getBoundingClientRect();
+      const f = m.querySourceFeatures('roads').find(f=>f.properties.id==='R-059'); const g = f.geometry.coordinates;
+      for (let i = 0; i < g.length - 1; i++) for (let t = 0.0; t < 1; t += 0.1) {
+        const c = [g[i][0] + (g[i+1][0] - g[i][0]) * t, g[i][1] + (g[i+1][1] - g[i][1]) * t]; const p = m.project(c);
+        const box = [[p.x - 7, p.y - 7], [p.x + 7, p.y + 7]];
+        const pts = m.queryRenderedFeatures(box, { layers: ['facilities', 'infra-power', 'infra-drain', 'response-dot', 'staging'].filter((l) => m.getLayer(l)) });
+        const rd = m.queryRenderedFeatures(box, { layers: ['roads-hit'] });
+        const el = document.elementFromPoint(p.x + r.left, p.y + r.top);
+        if (el === m.getCanvas() && !pts.length && rd.length && rd[0].properties.id === 'R-059') return [p.x + r.left, p.y + r.top]; }
+      const p = m.project(g[Math.floor(g.length / 2)]); return [p.x + r.left, p.y + r.top]; }""")
     pg.mouse.click(px[0], px[1])
     pg.wait_for_selector("[data-testid=road-closure-control]", timeout=5000)
-    check("road inspector opens on map click", "R-019" in pg.inner_text("aside[aria-label='Feature inspector']"))
+    check("road inspector opens on map click", "R-059" in pg.inner_text("aside[aria-label='Feature inspector']"))
     pg.get_by_role("button", name="Close this road").click()
     pg.wait_for_function("!document.querySelector('[data-testid=run-sim]').disabled", timeout=30000)
     pg.wait_for_timeout(5500)
-    closed = pg.evaluate("window.__rsMap.querySourceFeatures('roads').find(f=>f.properties.id==='R-019').properties.status")
-    check("R-019 closed on map after click", closed == "closed", closed)
+    closed = pg.evaluate("window.__rsMap.querySourceFeatures('roads').find(f=>f.properties.id==='R-059').properties.status")
+    check("R-059 (SCLR rail over-bridge) closed on map after click", closed == "closed", closed)
     pg.screenshot(path=f"{OUT}_03_closed.png")
+    pg.get_by_role("button", name="Fit map to neighborhood").click(); pg.wait_for_timeout(1200)
 
-    # Step 4: click hospital H-01
-    px = pg.evaluate("""() => { const m = window.__rsMap; const f = m.querySourceFeatures('facilities').find(f=>f.properties.id==='H-02'); const p = m.project(f.geometry.coordinates); const r = m.getCanvas().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; }""")
+    # Step 4: click hospital H-01 (K.B. Bhabha Municipal Hospital)
+    px = pg.evaluate("""() => { const m = window.__rsMap; const f = m.querySourceFeatures('facilities').find(f=>f.properties.id==='H-01'); const p = m.project(f.geometry.coordinates); const r = m.getCanvas().getBoundingClientRect(); return [p.x + r.left, p.y + r.top]; }""")
     pg.mouse.click(px[0], px[1])
     pg.wait_for_selector("aside[aria-label='Feature inspector']", timeout=5000)
     txt = pg.inner_text("aside[aria-label='Feature inspector']")
@@ -56,11 +71,12 @@ with sync_playwright() as p:
 
     # Step 5: response
     pg.get_by_role("tab", name="Response Strategies").click()
-    pg.get_by_role("radio", name="C · Balanced community response").click()
+    pg.get_by_role("radio", name="B · Maximize population access").click()
     pg.get_by_test_id("deploy-response").click()
     pg.wait_for_selector("[data-testid=recovery-summary]", timeout=45000)
     pg.wait_for_selector("[data-testid=restored-callout]", timeout=10000)
-    check("recovery restores access", "person-service" in pg.inner_text("[data-testid=restored-callout]"), pg.inner_text("[data-testid=restored-callout]").replace("\n", " ")[:80])
+    rest = pg.inner_text("[data-testid=restored-callout]"); rest_n = int((__import__("re").findall(r"\d[\d,]*", rest) or ["0"])[0].replace(",", ""))
+    check("recovery restores access (> 0 person-service equivalents)", "person-service" in rest and rest_n > 0, pg.inner_text("[data-testid=restored-callout]").replace("\n", " ")[:80])
     n_resp = pg.evaluate("window.__rsMap.querySourceFeatures('response').length")
     check("response deployments drawn on map", n_resp > 0, str(n_resp))
     pg.screenshot(path=f"{OUT}_05_recovery.png")
@@ -78,7 +94,7 @@ with sync_playwright() as p:
     with pg.expect_download(timeout=30000) as dl:
         pg.get_by_role("menuitem", name="Report (JSON)").click()
     data = json.loads(open(dl.value.path(), encoding="utf-8").read())
-    check("export JSON valid + labeled synthetic", data.get("synthetic_data") is True and data.get("comparison"), str(list(data)[:4]))
+    check("export JSON valid + OSM provenance label", data.get("synthetic_data") is False and "OpenStreetMap" in data.get("data_label", "") and data.get("comparison"), str(list(data)[:4]))
 
     # timeline controls
     pg.get_by_role("tab", name="Scenario Timeline").click()

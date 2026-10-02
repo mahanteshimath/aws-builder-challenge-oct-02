@@ -2,25 +2,28 @@
 
 ## Title (max 255)
 ```
-Resilience Simulator: stress-test a neighborhood before disaster strikes
+Resilience Simulator: stress-test Kurla, Mumbai before the next monsoon
 ```
 
 ## Description (max 512)
 ```
-An interactive climate-emergency digital twin of a fictional Indian neighborhood: change rainfall, close roads or cut power, and a deterministic engine recomputes who loses access to hospitals, shelters and water. A budget-constrained optimizer tests response strategies, and Amazon Bedrock writes a grounded situation brief with a rule-based fallback.
+A flood digital twin of Kurla, Mumbai on real OpenStreetMap roads, Mithi River bridges and hospitals. Add rain, close a bridge or cut a substation and a deterministic engine recomputes who loses access to hospitals, shelters and water; a budget optimizer tests responses and Amazon Bedrock writes a grounded brief. Built and deployed by a coding agent on AWS for local tabletop drills.
 ```
 
 ## Cover image (optional, 1200x675, <2 MB)
-Upload `docs/screenshots/cover-1200x675.png` (1200x675, ~247 KB).
+Upload `docs/screenshots/cover-1200x675.png` (1200x675, ~370 KB). The same image is served as `og-cover.png` on the live site.
 
-## Tags (max 5)
-`Amazon Bedrock` · `AWS Lambda` · `AWS Amplify` · `Climate and Sustainability` · `Serverless`
-(use the closest available options in the tag picker)
+## Tags (max 5) - the first two are REQUIRED by the rules
+1. `#social-good` (app category - climate resilience focus area)
+2. `#community` (lane)
+3. `Amazon Bedrock`
+4. `AWS Lambda`
+5. `AWS Amplify`
 
 ## Links
 | Field | Value |
 |---|---|
-| GitHub or GitLab repository | https://github.com/mahanteshimath/aws-builder-challenge-oct-02 (**push the local commits first - nothing has been committed or pushed yet**) |
+| GitHub or GitLab repository | https://github.com/mahanteshimath/aws-builder-challenge-oct-02 |
 | Endpoint or live demo | https://main.dxhzlkmrgksnx.amplifyapp.com |
 | Jupyter / SageMaker notebook | Not applicable - leave blank |
 | API health (optional, for the body) | https://4wbvz70w98.execute-api.us-east-1.amazonaws.com/api/v1/health |
@@ -29,76 +32,97 @@ Upload `docs/screenshots/cover-1200x675.png` (1200x675, ~247 KB).
 
 ---
 
-# Resilience Simulator
+# Resilience Simulator - Kurla / Mithi River, Mumbai
 
-**Stress-test a neighborhood before disaster strikes.**
+**Category:** Social Good (climate resilience) · **Lane:** Community · **Live app (no sign-in):** https://main.dxhzlkmrgksnx.amplifyapp.com
 
-> The "Sahyadri Resilience District" is **fictional**. All roads, people, facilities and hazards are **synthetic, illustrative data**. Results are modeled estimates for comparative planning - **not** a flood forecast and **not** an operational emergency-management system.
+![Cover](https://main.dxhzlkmrgksnx.amplifyapp.com/og-cover.png)
 
-**Try it (no sign-in): https://main.dxhzlkmrgksnx.amplifyapp.com**
+## The story
+On 26 July 2005, 944 mm of rain fell on Mumbai in 24 hours. Kurla, with the Mithi River running down its west side, was among the hardest-hit areas - its BEST bus depot suffered serious damage and was shut for years. Every monsoon since, the same question comes back in residents' groups and volunteer chats: *if the water rises tonight, which road do we lose first, and can people still get to Bhabha Hospital?*
 
-## The problem
-Neighborhood emergencies fail through cascades: a flooded bridge cuts the only route to a clinic, a substation outage stops the pump that kept a road dry, and shelter capacity sits on the wrong side of the river. Planners and community groups rarely have an affordable, explorable way to ask *what breaks first, who loses access to care, and where does the next unit of response help most* - before an event.
+Kurla answers that question in a very particular way. The Mithi cuts it on the west, the Central Railway line splits it east from west, and only a handful of bridges and rail over-bridges hold it together. Resilience Simulator makes that visible: it is a free, browser-based **tabletop-drill tool** for the groups I am part of and work with in Mumbai - tech meetups that run civic-tech sessions, residents' and disaster-volunteer groups in flood-prone wards, and college classes studying urban climate resilience.
 
 ## What it does
-- **Live map** (MapLibre) of roads, flood-risk zones, population zones, hospitals, shelters, schools, water points, power and drainage assets.
-- **Deterministic simulation**: rainfall, duration, drainage and susceptibility feed a transparent flood-risk index. Roads become Open / Degraded / Restricted / Closed and travel times are recomputed with **Dijkstra on the road graph** - closing a road changes routes, not just colors.
-- **Click-to-close roads**, power-outage and pump-failure toggles, with live re-simulation.
-- **Service accessibility**: travel time from every population zone to hospitals, shelters and water points; a facility's *operational status* (power, backup) is tracked separately from its *reachability*. A power outage can stop a pump and raise flood risk nearby.
-- **Critical bottlenecks**: every road is removed in turn and scored by population-weighted loss of service access, with "sole route to facility" detection.
-- **Response optimizer**: three strategies (Protect critical services, Maximize population access, Balanced community response) pick actions under a budget. Every candidate is scored by **re-running the simulation**, and the recovery result is another re-run - not a paragraph of advice.
-- **Baseline vs Disaster vs Recovery** comparison, a 6-stage timeline (T+00 to T+90), charts, and JSON / CSV / HTML export plus an importable scenario file.
-- **AI Situation Brief** with Amazon Bedrock. The server recomputes the facts, the model only writes prose, and output is rejected - falling back to a clearly labelled *Rule-based* brief - if it cites any road, facility or zone ID that is not in the simulation output.
+- **Real map.** 150 road segments, 5 Mithi River crossings, 13 flyover / rail over-bridge segments and 29 named facilities (including K.B. Bhabha Municipal General Hospital, Kalina Hospital, CritiCare Asia, police and fire stations, schools) from **OpenStreetMap**; terrain from **SRTM 30 m**; 8 real neighbourhoods with ~482,600 modeled residents scaled from **Census 2011 Ward L** density.
+- **Deterministic simulation.** Rainfall, duration and drainage feed a transparent flood-risk index (SRTM elevation + Mithi / nala proximity). Roads become Open / Degraded / Restricted / Closed and travel times are recomputed with **Dijkstra on the road graph** - closing a road changes routes, not just colours.
+- **Cascades.** A substation outage stops the pumps it feeds, which raises flood risk, which closes roads. A facility's *operational status* (power, backup hours) is tracked separately from its *reachability*.
+- **Single points of failure.** Every road is removed in turn and scored by population-weighted loss of hospital / shelter / water access, with "sole route" detection.
+- **Response optimizer.** Three strategies (Protect critical services, Maximize population access, Balanced) choose road clearance, generators, water tankers, temporary medical units and shelter kits under a budget. Every candidate is scored by **re-running the engine**; recovery is another re-run.
+- **AI Situation Brief.** Amazon Bedrock (Nova Lite) turns the computed facts into a brief. The server recomputes the facts, the model only writes prose, and output is rejected - falling back to a labelled rule-based brief - if it cites any road, facility or zone ID that is not in the simulation output.
+- Baseline vs Disaster vs Recovery comparison, a 6-stage timeline, JSON / CSV / HTML export, importable scenario files.
 
-## Measured example (deterministic, synthetic data)
-| Scenario | Result |
+## What a drill shows (deterministic, reproducible on the live app)
+| Scenario | Modeled result |
 |---|---|
-| Baseline | 0 people exposed, 4/4 hospitals reachable, 5.7 min average hospital travel |
-| Extreme rainfall (160 mm, drainage 35%) | 20,426 people potentially exposed, 34,600 with reduced hospital access, 3/4 hospitals reachable |
-| Compound emergency + Balanced response (30 lakh budget) | reduced hospital access 27,400 -> 0; ~19,800 person-service equivalents of access restored |
+| Baseline | 4/4 hospitals reachable, 3.6 min average hospital travel |
+| Heavy monsoon rainfall (100 mm / 6 h) | ~43,000 people in modeled flood-risk zones; 53 road segments affected |
+| 120 mm + **SCLR rail over-bridge closed** | **104,400** residents of Nehru Nagar and Tilak Nagar lose timely hospital access; 2 neighbourhoods have no route to any hospital |
+| Compound emergency (150 mm + over-bridge closed + Mithi-bank substation down) | 206,400 residents with reduced access to an essential service |
+| + 30-lakh *Maximize population access* plan | **0** residents with reduced access in the re-run model; 51,800 person-service equivalents restored for 29.9 lakh |
+
+The point is not the exact numbers - they rest on modeled populations - but the structure they reveal: one over-bridge is the difference between east Kurla reaching a hospital or not, and the cheapest high-value action in a crisis is clearing it.
+
+## How I built it with a coding agent connected to AWS
+I used **Snowflake Cortex Code** (VS Code) as the coding agent, connected to my AWS account through the **AWS CLI v2 / SAM CLI** with the `hackathon` profile. The agent:
+1. checked the identity and region, listed Bedrock models and inference profiles;
+2. wrote the engine, 75 backend tests and 47 frontend tests, the SAM template and deploy scripts;
+3. created the Amplify app, deployed the SAM stack (API Gateway, two Lambdas, private S3, IAM, CloudWatch), uploaded data and deployed the SPA;
+4. ran a 15-check API smoke test and a 14-check Playwright browser test against the **public** URLs - and used those runs to find and fix real bugs (transparent panels, a recovery metric that gave zero credit for reconnecting a cut-off neighbourhood);
+5. rebuilt the dataset from OpenStreetMap + SRTM for Kurla, calibrated it by running the engine, and redeployed.
+
+**Proof of the connection:** every AWS call the agent makes is tagged `AWS_SDK_UA_APP_ID=cortex-code-agent`, so CloudTrail shows `app/cortex-code-agent` on the `CreateChangeSet`, `ExecuteChangeSet`, `UpdateFunctionConfiguration`, `CreateDeployment` and `StartDeployment` events. The masked CloudTrail table, identity and resource list are in [`docs/AWS_AGENT_CONNECTION_PROOF.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/AWS_AGENT_CONNECTION_PROOF.md); screenshots of the agent chat running the deploy are attached below.
+
+<!-- Attach 2-3 screenshots here: (1) agent chat running `aws sts get-caller-identity` / `sam deploy`, (2) Amplify deployment job SUCCEED, (3) smoke test ALL PASSED -->
 
 ## Architecture
 ```
-Browser -> React + MapLibre SPA (AWS Amplify Hosting)
-        -> API Gateway HTTP API (CORS allow-list, throttling)
-        -> Lambda (Python 3.12): simulate / optimize / compare / export / dataset  --+
-        -> Lambda (Python 3.12): situation brief --------------------------------+--> shared deterministic engine
-                                   |-> Amazon Bedrock (Nova Lite, Converse API)        |-> private S3 (GeoJSON)
-                                   '-> rule-based fallback on any failure              '-> CloudWatch Logs
+Browser -> React + MapLibre SPA (AWS Amplify Hosting, CSP + security headers)
+        -> Amazon API Gateway HTTP API (CORS allow-list, throttling, access logs)
+        -> AWS Lambda (Python 3.12): simulate / optimize / compare / export / dataset --+
+        -> AWS Lambda (Python 3.12): situation brief ----------------------------------+--> shared deterministic engine
+                                   |-> Amazon Bedrock (Nova Lite, Converse API)          |-> private Amazon S3 (Kurla GeoJSON)
+                                   '-> rule-based fallback on any failure                '-> Amazon CloudWatch Logs
 ```
-Infrastructure is defined with **AWS SAM** and deploys with one script. No database, no always-on compute; Bedrock is called only when the user clicks *Generate*.
+Infrastructure as code with **AWS SAM**; IAM least privilege (`bedrock:InvokeModel` on one model + profile, S3 read on one bucket); no database, no always-on compute; Bedrock is called only when the user clicks *Generate*.
 
 ## AWS services used
-Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) - AWS Amplify Hosting - Amazon API Gateway (HTTP API) - AWS Lambda - Amazon S3 - Amazon CloudWatch Logs - AWS IAM - AWS CloudFormation / SAM.
+Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) · AWS Amplify Hosting · Amazon API Gateway (HTTP API) · AWS Lambda · Amazon S3 · Amazon CloudWatch Logs · AWS IAM · AWS CloudFormation / SAM · AWS CloudTrail (agent audit trail).
 
 ## What is original
-1. A map where every change is backed by a recomputed road graph, with bottleneck scoring by exhaustive road removal.
-2. Operational status and reachability modeled separately, including a power -> pump -> flood-risk cascade.
-3. An optimizer that scores candidates by re-running the simulation, re-validates every intervention server-side (budget, units, radius, reachability), and reports beneficial actions it could not fund.
-4. Grounded AI: the model explains computed facts and is validated against them, with a deterministic fallback so the app never depends on AI.
+1. A neighbourhood digital twin where every map change is backed by a recomputed road graph, on real OSM geography of a flood-prone Mumbai ward.
+2. Bottleneck scoring by exhaustive road removal, which surfaces Kurla's rail over-bridges as its single points of failure.
+3. Operational status and reachability modeled separately, including a power → pump → flood-risk cascade.
+4. An optimizer that scores every candidate by re-running the simulation, re-validates every intervention server-side, and credits partial recovery when a cut-off neighbourhood is reconnected.
+5. Grounded AI: Bedrock explains computed facts and is validated against them, with a deterministic fallback so the tool never depends on AI.
 
-## Verification (actually run)
-- 74 backend tests and 47 frontend tests pass; production build succeeds.
-- Deployed-API smoke test: 15/15 (health, dataset, CORS, determinism, optimize, compare, Bedrock brief, fallback path, three export formats, validation errors).
+## Impact - measured so far, honestly
+- **Measured in the model:** the drill above quantifies which single structure matters most (SCLR over-bridge: 104,400 residents) and what a 30-lakh plan buys (206,400 → 0 residents with reduced access).
+- **Not yet measured in the real world:** no group has run a drill with it yet, and populations, capacities, power links and most pumps are modeled, not official BMC data. It is a planning and education tool, not a flood forecast or an operational system.
+- **Next 30 days (Community lane plan):** run one 45-minute drill each with a tech meetup, a residents' / volunteer group and a college class; record which bottlenecks and plans they disagree with; replace modeled populations with ward-level figures and validate flood pockets against the 2005 and 2017 flood reports; publish the drill kit so other wards can load their own OSM extract (the builder script already takes any bounding box).
+
+## Verification (actually run against the live deployment)
+- 75 backend tests and 47 frontend tests pass; production build succeeds.
+- Deployed-API smoke test: 15/15 (health, dataset provenance, CORS, determinism, optimize, compare, live Bedrock brief, fallback path, three export formats, validation errors).
 - Browser end-to-end run of the full demo on the public URL: 14/14 checks, zero console errors.
 
 ## 90-second demo path
-Baseline -> **Extreme rainfall** (timeline plays) -> click a pink critical road and **Close this road** -> click a hospital (baseline vs now, alternative route) -> **Response Strategies -> Balanced -> Deploy** -> Recovery comparison -> **Generate AI Situation Brief** -> **Export Results**. Or click preset **6. Coordinated emergency response** for the whole story in one click.
+Baseline → **3. Extreme rainfall** (timeline plays) → click the pink **SCLR rail over-bridge** and **Close this road** → click **Bhabha Hospital** (zones cut off, baseline vs now) → **Response Strategies → B · Maximize population access → Deploy** → Recovery (104,400 → 0) → **Generate AI Situation Brief** → **Export Results**. Or click preset **6. Coordinated emergency response** for the whole story in one click.
 
-## Honest limitations
-Synthetic, fictional district; conceptual uncalibrated flood index; simplified power model; no evacuation or rescue-team modeling; greedy (non-optimal) optimizer; stateless demo without saved scenarios; desktop and tablet first. No real-world user testing or adoption has occurred. Details: `docs/ASSUMPTIONS_AND_LIMITATIONS.md`.
+## Data credits and limits
+Map data © OpenStreetMap contributors (ODbL 1.0). Terrain SRTM 30 m (public domain). Ward density: Census of India 2011. Modeled: zone populations, capacities, backup power, power links, 3 of 4 power nodes, 5 of 6 pumps, response resources and costs. Conceptual, uncalibrated flood index. Full list: `docs/ASSUMPTIONS_AND_LIMITATIONS.md`.
 
-## Roadmap
-Ingest verified open data (OSM roads, elevation, census) through the existing GeoJSON schema, calibrate thresholds with a hydrological partner, persist and share scenarios, add evacuation modeling.
-
-**Source:** https://github.com/mahanteshimath/aws-builder-challenge-oct-02 - see `README.md` and `docs/`.
+**Source:** https://github.com/mahanteshimath/aws-builder-challenge-oct-02
 
 ---
 
 ## Pre-publish checklist
-- [x] Live demo URL verified (Amplify, 2026-10-02) and API healthy
-- [x] Cover image generated (1200x675)
-- [x] Tests, smoke test and end-to-end run passing
-- [ ] **Commit and push the repository** so the GitHub link resolves (not yet done)
-- [ ] Optional: add a short screen recording of the 90-second path (none exists yet; do not claim one)
-- [ ] Pick tags in the form; use **Preview** before **Publish**
+- [x] Live demo URL verified on the Kurla data (Amplify job 4, 2026-10-02) and API healthy (`kurla-mithi-osm-1.0`)
+- [x] Proof of coding-agent connection documented (`docs/AWS_AGENT_CONNECTION_PROOF.md`, CloudTrail `app/cortex-code-agent`)
+- [x] Category tag `#social-good` and lane tag `#community` listed above
+- [x] Cover image regenerated for Kurla (1200x675)
+- [x] Tests, smoke test and end-to-end run passing on the deployed system
+- [ ] **Commit and push** this round of changes so the GitHub links resolve to the Kurla version
+- [ ] **Attach 2-3 screenshots** of the Cortex Code chat running the AWS deploy (the agent cannot capture your screen)
+- [ ] Optional but recommended for storytelling: record the 90-second demo path (`docs/DEMO_SCRIPT.md`) and add the video link
+- [ ] Pick the tags in the form; use **Preview** before **Publish**; publish before **Oct 2, 2026, 11:59 PM PT**

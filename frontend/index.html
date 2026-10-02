@@ -4,11 +4,64 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Resilience Simulator - stress-test a neighborhood before disaster strikes. Synthetic demonstration data." />
-    <title>Resilience Simulator</title>
+    <title>Resilience Simulator - Kurla / Mithi River flood digital twin (Mumbai)</title>
+    <meta name="description" content="Stress-test a real Mumbai neighbourhood before the monsoon. A deterministic flood, road-network and service-access digital twin of Kurla and the Mithi River built on OpenStreetMap, with a budget-constrained response optimizer and Amazon Bedrock situation briefs. Runs on AWS Amplify, API Gateway, Lambda, S3 and Bedrock." />
+    <meta name="theme-color" content="#050a14" />
+    <link rel="canonical" href="https://main.dxhzlkmrgksnx.amplifyapp.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Resilience Simulator" />
+    <meta property="og:title" content="Resilience Simulator - stress-test Kurla before the next monsoon" />
+    <meta property="og:description" content="Close a Mithi bridge, cut a substation, add 160 mm of rain - and watch who loses access to hospitals, shelters and water in Kurla, Mumbai. Real OpenStreetMap geography, modeled populations, AWS serverless + Amazon Bedrock." />
+    <meta property="og:url" content="https://main.dxhzlkmrgksnx.amplifyapp.com/" />
+    <meta property="og:image" content="https://main.dxhzlkmrgksnx.amplifyapp.com/og-cover.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="675" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Resilience Simulator - Kurla / Mithi River flood digital twin" />
+    <meta name="twitter:description" content="Real OpenStreetMap geography of Kurla, Mumbai. Deterministic flood + Dijkstra accessibility engine, response optimizer, Amazon Bedrock briefs." />
+    <meta name="twitter:image" content="https://main.dxhzlkmrgksnx.amplifyapp.com/og-cover.png" />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main style="max-width:860px;margin:2rem auto;padding:0 1rem;font-family:system-ui,sans-serif;line-height:1.55;color:#e6edf7;background:#050a14">
+        <h1>Resilience Simulator - Kurla / Mithi River, Mumbai</h1>
+        <p><strong>Stress-test a neighbourhood before disaster strikes.</strong> An interactive climate-emergency digital twin for community resilience
+          groups, disaster volunteers, students and ward-level planners. JavaScript is required for the interactive map; this summary is provided for
+          readers and crawlers without it.</p>
+        <h2>Why Kurla</h2>
+        <p>On 26 July 2005, 944 mm of rain fell on Mumbai in 24 hours. Kurla (BMC Ward L), with the Mithi River along its west side, was badly hit; the Kurla
+          BEST depot suffered serious damage. Kurla is split east-west by the Central Railway line and crossed by the Mithi, so a handful of bridges and
+          rail over-bridges decide whether ~480,000 modeled residents can reach a hospital, shelter or water point.</p>
+        <h2>What it does</h2>
+        <ul>
+          <li>Real geography: 150 road segments (5 Mithi River crossings, 13 flyover / rail over-bridge segments), 29 named facilities (including K.B. Bhabha Municipal Hospital) from
+            OpenStreetMap; terrain from SRTM 30 m.</li>
+          <li>A deterministic flood-risk index degrades or closes roads; Dijkstra re-routes on the road graph to compute hospital, shelter and water access.</li>
+          <li>Bottleneck scan: every road is removed in turn to find single points of failure.</li>
+          <li>Power cascade: a substation outage stops pumps, which raises flood risk, which closes roads.</li>
+          <li>Budget-constrained response optimizer (three strategies) that scores every candidate by re-running the engine.</li>
+          <li>Amazon Bedrock (Nova Lite) writes a situation brief that is validated against the computed facts, with a deterministic fallback.</li>
+        </ul>
+        <h2>Modeled example</h2>
+        <ul>
+          <li>Heavy monsoon rainfall (100 mm / 6 h): ~43,000 people in modeled flood-risk zones; 53 road segments affected.</li>
+          <li>Closing the Santa Cruz - Chembur Link Road rail over-bridge under 120 mm of rain: 104,400 modeled residents lose timely hospital access.</li>
+          <li>Compound emergency (150 mm + over-bridge closed + Mithi-bank substation down): 206,400 residents with reduced access to an essential service.
+            A 30-lakh "Maximize population access" plan (clear the over-bridge, generators on the Mithi flood-gate pump and Kalina Hospital, water tankers,
+            a temporary medical unit) brings that to 0 in the re-run model.</li>
+        </ul>
+        <h2>Built on AWS</h2>
+        <p>React + MapLibre SPA on AWS Amplify Hosting; Amazon API Gateway HTTP API; two Python 3.12 AWS Lambda functions; private Amazon S3 GeoJSON;
+          Amazon Bedrock Runtime (Converse, Nova Lite); Amazon CloudWatch Logs; AWS IAM least privilege; AWS SAM / CloudFormation. Built and deployed with a
+          coding agent (Snowflake Cortex Code) connected to the AWS account via the AWS CLI.</p>
+        <h2>Honest limits</h2>
+        <p>Roads, river, bridges and facility locations are real (OpenStreetMap). Zone populations (scaled from Census 2011 Ward L density), capacities,
+          backup power, power links, most pumps and response resources are modeled planning assumptions, not official BMC data. Comparative planning and
+          tabletop-drill tool only - not a flood forecast and not an operational emergency system.</p>
+        <p>Map data &copy; OpenStreetMap contributors, ODbL 1.0. Terrain: SRTM (public domain).</p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

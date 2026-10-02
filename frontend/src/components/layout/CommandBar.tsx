@@ -30,7 +30,7 @@ export function CommandBar() {
       <Logo />
       <div className="hidden min-w-0 border-l border-line pl-4 md:block">
         <p className="label-xs">Neighborhood</p>
-        <p className="truncate text-xs font-semibold">Sahyadri Resilience District <Badge tone="warn" className="ml-1">synthetic</Badge></p>
+        <p className="truncate text-xs font-semibold">Kurla / Mithi River, Mumbai <Badge tone="warn" className="ml-1">real map · modeled data</Badge></p>
       </div>
       <div className="min-w-0 border-l border-line pl-4">
         <p className="label-xs">Scenario</p>

@@ -18,7 +18,7 @@ export function AppShell() {
   const { datasetStatus, datasetError, loadDataset, runError, run, notice, dismissNotice, bottomOpen, dataset, runStatus } = useScenarioStore()
   useEffect(() => { if (datasetStatus === 'idle') void loadDataset() }, [datasetStatus, loadDataset])
 
-  if (datasetStatus === 'idle' || datasetStatus === 'loading') return <div className="flex h-full items-center justify-center"><LoadingState label="Loading synthetic Sahyadri Resilience District" /></div>
+  if (datasetStatus === 'idle' || datasetStatus === 'loading') return <div className="flex h-full items-center justify-center"><LoadingState label="Loading Kurla / Mithi River (OpenStreetMap geography)" /></div>
   if (datasetStatus === 'error' || !dataset) return <div className="mx-auto max-w-lg pt-24"><ErrorState title="Could not load the simulation dataset" message={datasetError ?? 'Unknown error'} onRetry={() => void loadDataset()} /></div>
 
   return (
@@ -34,7 +34,7 @@ export function AppShell() {
           <div className="order-1 flex min-h-[420px] min-w-0 flex-col lg:order-2 lg:min-h-0">
             <div className="relative h-[58vh] min-h-[340px] lg:h-auto lg:min-h-0 lg:flex-1" aria-busy={runStatus === 'running'}>
               <ResilienceMap /><MapLayerControl /><MapLegend /><FeatureInspector />
-              <p className="pointer-events-none absolute bottom-1 right-2 z-10 rounded bg-ink/70 px-1.5 text-[10px] text-muted">Synthetic demonstration data · modeled estimates · not a flood forecast</p>
+              <p className="pointer-events-none absolute bottom-1 right-2 z-10 rounded bg-ink/70 px-1.5 text-[10px] text-muted">Map data © OpenStreetMap contributors (ODbL) · SRTM terrain · modeled estimates · not a flood forecast</p>
             </div>
             <div className={cn('transition-all', bottomOpen ? 'h-[36vh] min-h-[250px]' : 'h-[46px]')}><AnalysisWorkspace /></div>
           </div>

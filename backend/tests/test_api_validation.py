@@ -9,9 +9,10 @@ from src.ai.prompt_templates import build_facts
 from src.handlers.api import dispatch
 from src.models.scenario import Scenario
 from src.simulation.compare import compare_scenarios
+from src.simulation.presets import MAJOR_ROAD, OUTAGE_POWER_NODE
 from src.simulation.scenario_engine import run_scenario
 
-COMPOUND = {"rainfall_mm": 150, "drainage_effectiveness": 0.4, "closed_road_ids": ["R-019"], "affected_power_nodes": ["P-02"]}
+COMPOUND = {"rainfall_mm": 150, "drainage_effectiveness": 0.4, "closed_road_ids": [MAJOR_ROAD], "affected_power_nodes": [OUTAGE_POWER_NODE]}
 
 
 def call(method, path, body=None, raw=None):
@@ -23,7 +24,7 @@ def call(method, path, body=None, raw=None):
 
 def test_health():
     s, b, _ = call("GET", "/api/v1/health")
-    assert s == 200 and b["status"] == "ok" and b["ai_provider"]["fallback"] == "rule_based" and b["synthetic_data"]
+    assert s == 200 and b["status"] == "ok" and b["ai_provider"]["fallback"] == "rule_based" and b["synthetic_data"] is False and "OpenStreetMap" in b["data_label"]
 
 
 def test_dataset():
@@ -86,11 +87,11 @@ def test_export_formats(fmt, ctype):
     s, b, r = call("POST", "/api/v1/export", {"scenario": COMPOUND, "format": fmt})
     assert s == 200 and r["headers"]["Content-Type"] == ctype
     body = r["body"]
-    assert "ynthetic" in body or "SYNTHETIC" in body
-    assert "AWS_" not in body and "SECRET" not in body.upper().replace("SYNTHETIC", "")
+    assert "OpenStreetMap" in body and ("modeled" in body.lower())
+    assert "AWS_" not in body and "SECRET" not in body.upper()
     if fmt == "json":
         p = json.loads(body)
-        assert p["synthetic_data"] is True and p["simulation_version"] and p["assumptions"] and p["comparison"]
+        assert p["synthetic_data"] is False and p["simulation_version"] and p["assumptions"] and p["comparison"]
 
 
 def test_brief_fallback_when_bedrock_disabled():
@@ -170,7 +171,7 @@ def test_allow_ai_false_never_calls_bedrock(monkeypatch):
 def test_fallback_brief_cites_actual_identifiers():
     out = generate_brief(sim())
     text = json.dumps(out["sections"])
-    assert "R-019" in text and "P-02" not in "" and out["synthetic_data"] is True
+    assert MAJOR_ROAD in text and out["synthetic_data"] is False
 
 
 def test_facts_do_not_contain_secrets():

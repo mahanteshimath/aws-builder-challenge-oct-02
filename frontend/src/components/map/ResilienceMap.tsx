@@ -122,13 +122,13 @@ export function ResilienceMap() {
   if (failed) return <SvgFallbackMap ds={ds} reason={failed} />
   return (
     <div className="relative h-full w-full" data-testid="map-root">
-      <div ref={box} className="absolute inset-0" aria-label="Interactive map of the synthetic Sahyadri Resilience District" />
+      <div ref={box} className="absolute inset-0" aria-label="Interactive map of Kurla and the Mithi River, Mumbai" />
       {(runStatus === 'running' || playing) && <div className="scanbar absolute inset-x-0 top-0 z-10 h-0.5 overflow-hidden bg-cyan/20" aria-hidden />}
       <div className="absolute left-2 top-2 z-10 flex flex-col gap-1.5">
         <Button size="sm" variant="secondary" onClick={() => mapRef.current?.fitBounds(bboxOf(ds), { padding: 40, duration: 500 })} aria-label="Fit map to neighborhood"><Crosshair size={13} /> Fit</Button>
         <Button size="sm" variant={layers.basemap ? 'primary' : 'secondary'} aria-pressed={layers.basemap} onClick={() => { setTileError(false); toggleLayer('basemap') }} title="Optional OpenStreetMap basemap (attribution required; subject to OSM tile usage policy)"><Layers size={13} /> OSM basemap</Button>
       </div>
-      {tileError && <p role="status" className="absolute bottom-8 left-2 z-10 max-w-xs rounded border border-warn/40 bg-panel/90 p-2 text-[11px] text-warn">Basemap tiles could not be loaded. Showing the local synthetic data only.</p>}
+      {tileError && <p role="status" className="absolute bottom-8 left-2 z-10 max-w-xs rounded border border-warn/40 bg-panel/90 p-2 text-[11px] text-warn">Basemap tiles could not be loaded. Showing the local OpenStreetMap-derived layers only.</p>}
     </div>
   )
 }

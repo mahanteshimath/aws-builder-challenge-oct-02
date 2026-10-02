@@ -1,6 +1,6 @@
 # Agent development log
 
-This log describes what the coding agent (Snowflake Cortex Code, model `claude-sonnet-5-5`) actually did in this repository on **2026-10-02**. Nothing here is estimated or aspirational.
+This log describes what the coding agent (Snowflake Cortex Code) actually did in this repository on **2026-10-02**, in two sessions (session 1: model `claude-sonnet-5-5`, synthetic build; session 2: model `claude-opus-5-5`, hackathon review and real-data rebuild). Nothing here is estimated or aspirational. AWS-connection evidence: [AWS_AGENT_CONNECTION_PROOF.md](AWS_AGENT_CONNECTION_PROOF.md).
 
 ## Environment inspected
 Windows 11, PowerShell 7. Node 24.14, npm 11.9, Python 3.12.10, AWS CLI 2.36.34. **SAM CLI was not installed** - installed with `pip install aws-sam-cli` (see side effects). AWS profiles found: `workshop-profile` and `developer_ai` (expired tokens), `ai-hack` (no credentials), `hackathon` (valid, us-east-1). Repository contained only a README stub. AWS access confirmed with `sts get-caller-identity`; Amplify and Bedrock listing permissions confirmed; `nova` foundation models and `us.amazon.nova-*` inference profiles listed.
@@ -40,4 +40,27 @@ Latencies are single observations, not benchmarks. No load testing was performed
 ## Environment side effects (user attention)
 `pip install aws-sam-cli` (and pydantic/pytest/boto3) was run against the **global** Python 3.12 and upgraded shared packages (`pydantic 2.13.5`, `rich 15.0.0`, `pyyaml 6.0.3`, `watchdog 4.0.2`); pip warned that this now conflicts with pins in `snowflake-cli 3.27.0` (needs `pydantic==2.12.5`, `pyyaml==6.0.2`, `rich==14.0.0`) and `strands-agents*` (`watchdog>=6`). If those tools are used from this interpreter, reinstall the pinned versions or use separate virtualenvs. Playwright was installed only in `build/e2e` (git-ignored). AWS resources created in the hackathon profile's account / us-east-1: CloudFormation stack `resilience-simulator` (HTTP API, 2 Lambdas, 1 S3 bucket, log group, IAM roles), Amplify app `dxhzlkmrgksnx`, and the SAM-managed artifact bucket.
 
+## Session 2 - hackathon review and real-data rebuild (2026-10-02, evening IST)
 
+**Review against the rules.** Verified the ship gate live (Amplify 200, API health 200, GitHub repo 200, stack `CREATE_COMPLETE`). Found two pass/fail gaps in the submission text: no documented proof of the agent's AWS connection, and no category / lane tags. Found two scoring gaps: impact (fictional district, no audience) and storytelling (empty SPA shell for non-JS crawlers, no human story). Builder chose **#social-good** (climate resilience) and the **#community** lane, and asked for real data on **Kurla / Mithi River, Mumbai**.
+
+**Work completed, in order**
+1. **Proof of connection** - tagged all agent AWS calls with `AWS_SDK_UA_APP_ID=cortex-code-agent`; wrote `scripts/agent_proof.py` (CloudTrail `LookupEvents`, masked) and `docs/AWS_AGENT_CONNECTION_PROOF.md`.
+2. **Real data** - fetched OpenStreetMap (Overpass API: ~1,200 elements incl. 887 road ways, Mithi River, 75 hospitals, substations, pumping stations, 70 place names) and an SRTM 30 m elevation grid (OpenTopoData, 616 points); cached them in `backend/data_sources/`. Census 2011 Ward L density (892,278 / 13.46 kmÂ²) taken from Wikipedia's BMC ward table. Wrote `backend/src/data/build_kurla_dataset.py`: splits OSM ways at junctions, merges junctions within 120 m, keeps the best carriageway per pair, contracts pass-through nodes (812 raw edges â†’ 150 segments, 105 nodes), detects Mithi crossings and flyovers, derives susceptibility from SRTM rank + Mithi / nala proximity, partitions the area into 8 real neighbourhoods, and labels every modeled attribute.
+3. **Engine adjustments (backwards compatible)** - exposure sampling accepts explicit sample points for non-rectangular zones; road midpoint uses the middle vertex instead of index 1 (engine, interventions, frontend marker).
+4. **Calibration by running the engine** - first build anchored two zones to degree-2 nodes, so dead-end spurs topped the bottleneck list â†’ anchors moved to the nearest junction with >= 3 roads. A sweep of every bridge / arterial closure found the SCLR rail over-bridge (R-059) is the highest-impact single closure (104,400 residents lose timely hospital access), which became the preset closure. With the original resource pools the 30-lakh budget never bound and all strategies chose identical plans â†’ pool sizes raised so trade-offs appear.
+5. **Bug found by the live E2E run and fixed** - after deploying, the browser test passed but showed "0 person-service equivalents restored" when the response reopened R-059. Cause: the recovery metric and optimizer only credited a service when it returned to within 25 % of baseline, so reconnecting a completely cut-off zone (no route â†’ reachable but slower) scored zero. Fixed with a per-service severity (cut off = 1, delayed = 0.5, normal = 0) in `scenario_engine.py` and `response_optimizer.py`; added `test_reconnecting_a_cut_off_zone_earns_recovery_credit`; tightened the E2E check to require > 0.
+6. **Labels and docs** - replaced every "synthetic / Sahyadri" surface with provenance labels and OSM attribution (API, exports, Bedrock prompt, rule-based brief, UI, map sources); fixed `metrics.py`, which documented road penalties as Ã—1.4 / Ã—3.0 while the engine uses Ã—1.3 / Ã—2.5; rule-based brief now lists user-selected closures first.
+7. **Crawler-readable page** - `index.html` now has a `<noscript>` summary and Open Graph / Twitter tags with a new 1200Ã—675 cover (`og-cover.png`).
+8. **Redeploy** - `sam deploy` (twice), S3 sync of the 10 Kurla layers, Amplify deployment job 4, all with the agent UA tag.
+
+**Results actually observed (session 2)**
+| Item | Result |
+|---|---|
+| `python -m pytest backend` | 75 passed |
+| `npx vitest run` / `tsc --noEmit` / `vite build` | 47 passed / clean / succeeded |
+| `scripts/smoke_api.py` on the deployed API | 15/15, Bedrock brief `provider=bedrock` |
+| `scripts/e2e_flow.py` on the Amplify URL | 14/14, 0 console errors, 34,800 person-service equivalents restored in the demo path |
+| Engine time on Kurla data | ~0.15 s per scenario; ~1 s per optimizer strategy |
+
+**Not done / limits (session 2)** - no real users or partner organisation have used the tool; no validation against observed 2005 / 2017 flood extents; populations, capacities, power links and most pumps remain modeled; the agent could not take screenshots of the VS Code chat (builder to attach); no demo video was produced.

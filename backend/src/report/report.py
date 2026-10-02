@@ -6,14 +6,14 @@ import html
 import io
 import json
 
-from ..simulation.scenario_engine import SYNTHETIC_NOTICE
+from ..simulation.scenario_engine import SYNTHETIC_DATA, SYNTHETIC_NOTICE
 
 
 def export_payload(sim: dict, brief: dict | None = None) -> dict:
     rec = sim["recovery"]
     dis = sim["disaster"]
     return {
-        "report_type": "resilience_simulator_scenario_report", "synthetic_data": True, "data_label": SYNTHETIC_NOTICE,
+        "report_type": "resilience_simulator_scenario_report", "synthetic_data": SYNTHETIC_DATA, "data_label": SYNTHETIC_NOTICE,
         "generated_at": sim["generated_at"], "simulation_version": sim["simulation_version"], "dataset_version": sim["dataset_version"],
         "scenario": sim["scenario"],
         "comparison": sim["comparison"],
@@ -25,7 +25,7 @@ def export_payload(sim: dict, brief: dict | None = None) -> dict:
         "response_actions": (rec or {}).get("interventions", []),
         "recovery_summary": sim["recovery_summary"],
         "assumptions": sim["assumptions"], "warnings": sim["warnings"],
-        "limitations": ["Illustrative synthetic data; not an operational emergency management or flood forecasting system.",
+        "limitations": ["Real OpenStreetMap geography with modeled attributes; not official BMC data; not an operational emergency management or flood forecasting system.",
                         "Modeled estimates for comparative planning only."],
         "situation_brief": brief,
     }
@@ -34,7 +34,7 @@ def export_payload(sim: dict, brief: dict | None = None) -> dict:
 def to_csv(payload: dict) -> str:
     buf = io.StringIO()
     w = csv.writer(buf)
-    w.writerow(["# Resilience Simulator - synthetic demonstration data; modeled estimates only"])
+    w.writerow(["# Resilience Simulator - Kurla / Mithi River (real OSM geography, modeled attributes); modeled estimates only. Map data (c) OpenStreetMap contributors, ODbL"])
     w.writerow(["scenario", payload["scenario"]["name"], "simulation_version", payload["simulation_version"], "generated_at", payload["generated_at"]])
     w.writerow(["metric", "unit", "baseline", "disaster", "recovery", "delta_disaster_vs_baseline", "delta_recovery_vs_disaster"])
     for r in payload["comparison"]:
