@@ -60,5 +60,5 @@ flowchart TB
 ## Security
 IAM roles only (no keys); Lambda policies: `S3ReadPolicy` on the one bucket, `bedrock:InvokeModel` on one foundation model + one inference profile (brief Lambda only); bucket is private (all public-access blocks, SSE-S3, bucket-owner-enforced); request body ≤ 64 KB; Pydantic bounds on every numeric input (rainfall 0-200 mm, duration 1-72 h, ≤60 closures…); client-supplied interventions are re-costed and re-validated server-side (budget, units, radius, reachability); consistent error envelope `{"error":{"code","message","details"}}`.
 
-## Agent audit trail
-The deploy workflow sets `AWS_SDK_UA_APP_ID=cortex-code-agent`, so every CloudFormation, Lambda, S3 and Amplify call made by the coding agent is identifiable in AWS CloudTrail (`userAgent` contains `app/cortex-code-agent`). `scripts/agent_proof.py` extracts a masked evidence table; see `AWS_AGENT_CONNECTION_PROOF.md`.
+## Deployment audit trail
+The release script sets `AWS_SDK_UA_APP_ID=cortex-code-agent`, so every CloudFormation, Lambda, S3 and Amplify call it makes is identifiable in AWS CloudTrail (`userAgent` contains `app/cortex-code-agent`). `scripts/agent_proof.py` extracts a masked evidence table; see `AWS_AGENT_CONNECTION_PROOF.md`.

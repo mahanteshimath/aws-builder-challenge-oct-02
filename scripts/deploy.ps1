@@ -10,7 +10,7 @@ param(
   [string]$BedrockBaseModelId = "amazon.nova-lite-v1:0"
 )
 $ErrorActionPreference = "Stop"
-# Tag every AWS CLI / SAM call so CloudTrail shows it came from the coding agent workflow (userAgent contains app/cortex-code-agent)
+# Tag every AWS CLI / SAM call so the release is identifiable in CloudTrail (userAgent contains app/cortex-code-agent)
 if (-not $env:AWS_SDK_UA_APP_ID) { $env:AWS_SDK_UA_APP_ID = "cortex-code-agent" }
 $env:AWS_PROFILE = $Profile; $env:AWS_REGION = $Region; $env:SAM_CLI_TELEMETRY = "0"
 Set-Location (Split-Path $PSScriptRoot -Parent)

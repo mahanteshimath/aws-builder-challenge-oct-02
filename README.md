@@ -12,10 +12,10 @@ An interactive, neighborhood-scale **climate emergency digital twin** of Kurla, 
 | **Live app (Amplify)** | https://main.dxhzlkmrgksnx.amplifyapp.com |
 | **Live API** | https://4wbvz70w98.execute-api.us-east-1.amazonaws.com/api/v1/health |
 | **Region / account** | us-east-1 (AWS CLI profile `hackathon`) |
-| **Category / lane** | `#social-good` (climate resilience) Â· `#community` |
-| **Coding agent â†” AWS proof** | [docs/AWS_AGENT_CONNECTION_PROOF.md](docs/AWS_AGENT_CONNECTION_PROOF.md) (CloudTrail events tagged `app/cortex-code-agent`) |
+| **Category / lane** | `#social-good` (climate resilience) · `#community` |
+| **Development process** | [docs/DEVELOPMENT_PROCESS.md](docs/DEVELOPMENT_PROCESS.md) · analysis: [docs/ANALYSIS_AND_FINDINGS.md](docs/ANALYSIS_AND_FINDINGS.md) · AWS connection evidence: [docs/AWS_AGENT_CONNECTION_PROOF.md](docs/AWS_AGENT_CONNECTION_PROOF.md) |
 
-> **Data provenance:** roads, Mithi River crossings, flyovers, the river and 29 facility locations are **real** (Â© OpenStreetMap contributors, ODbL 1.0); terrain is **SRTM 30 m**; zone populations are scaled from **Census 2011 Ward L density**. Populations per zone, capacities, backup power, power links, 5 of 6 pumps, 3 of 4 power nodes and response resources are **modeled planning assumptions**, not official BMC data. Results are *modeled estimates for comparative planning and tabletop drills* - **not** a flood forecast and **not** an operational emergency-management system.
+> **Data provenance:** roads, Mithi River crossings, flyovers, the river and 29 facility locations are **real** (© OpenStreetMap contributors, ODbL 1.0); terrain is **SRTM 30 m**; zone populations are scaled from **Census 2011 Ward L density**. Populations per zone, capacities, backup power, power links, 5 of 6 pumps, 3 of 4 power nodes and response resources are **modeled planning assumptions**, not official BMC data. Results are *modeled estimates for comparative planning and tabletop drills* - **not** a flood forecast and **not** an operational emergency-management system.
 
 ![Baseline](docs/screenshots/01-baseline.png)
 
@@ -26,6 +26,14 @@ An interactive, neighborhood-scale **climate emergency digital twin** of Kurla, 
 Extreme rainfall rarely fails a neighborhood through one dramatic event - it fails through **cascades**: a flooded bridge cuts the only route to a clinic, a substation outage stops the pump that was keeping a road dry, and shelter capacity sits on the wrong side of the river. Kurla is a textbook case: the Mithi River runs down its west side, the Central Railway line splits it east from west, and a handful of bridges and rail over-bridges decide whether ~480,000 modeled residents can reach a hospital. Community groups, volunteers and students need a free, explorable way to ask *"what breaks first, who loses access, and where does the next rupee of response help most?"* before the monsoon, not during it.
 
 **Measured on the Kurla model (deterministic, reproducible):** closing the Santa Cruz - Chembur Link Road rail over-bridge under 120 mm of rain leaves **104,400 residents of Nehru Nagar and Tilak Nagar without timely hospital access**; in the compound emergency (150 mm + over-bridge closed + Mithi-bank substation down) **206,400** residents lose access to at least one essential service, and a 30-lakh *Maximize population access* plan brings that to **0** in the re-run model.
+
+## Analysis highlights
+Full, reproducible study: [docs/ANALYSIS_AND_FINDINGS.md](docs/ANALYSIS_AND_FINDINGS.md) (`python scripts/run_analysis.py`).
+- **Tipping point:** at 100 mm / 6 h ~43,000 residents sit in modeled flood-risk pockets but every neighbourhood still reaches a hospital; at 160 mm with weak drainage 104,400 lose timely hospital access.
+- **Single point of failure:** closing each of 150 road segments in turn, 132 cause no extra loss - but any one of four Santa Cruz - Chembur Link Road segments cuts hospital access for 104,400 residents, and the rail over-bridge R-059 leaves Nehru Nagar and Tilak Nagar with no route at all.
+- **Drainage matters before the monsoon:** at 150 mm, drainage effectiveness 0.2 -> 0.3 takes residents with reduced access from 206,400 to 0.
+- **Cascades:** losing the Mithi-bank substation stops two pumps and closes 6 more roads.
+- **Strategy beats budget:** *Maximize population access* restores everyone for 9.9 lakh by clearing R-059; the other strategies still leave 104,400 at 30 lakh.
 
 ## 2. Features
 - **Interactive MapLibre map** of roads, flood-risk zones, population zones, hospitals, shelters, schools, emergency posts, water points, power/drainage assets, staging depots - with layer toggles, legend, hover tooltips, click inspector, fit-to-bounds, optional OSM basemap.
@@ -113,14 +121,15 @@ It creates/updates: API Gateway HTTP API, two Python 3.12 Lambdas, a private enc
 Parameters `EnableBedrock`, `BedrockModelId`, `BedrockBaseModelId` (template) map to env vars `ENABLE_BEDROCK`, `BEDROCK_MODEL_ID`. Default `us.amazon.nova-lite-v1:0` (verified available in us-east-1 for this account). IAM allows only `bedrock:InvokeModel` on that foundation model and inference profile. Set `EnableBedrock=false` to run entirely on the rule-based fallback.
 
 ## 13. Testing
-Executed in this repository (see [docs/AGENT_DEVELOPMENT_LOG.md](docs/AGENT_DEVELOPMENT_LOG.md) for dates/outputs):
+Executed in this repository (see [docs/DEVELOPMENT_PROCESS.md](docs/DEVELOPMENT_PROCESS.md) for dates/outputs):
 - `python -m pytest backend` - **75 passed** (flood model, graph, accessibility, power cascade, optimizer constraints, recovery re-run, reconnection credit, determinism, API validation, Bedrock failure/fallback, invalid GeoJSON, data provenance, export).
 - `npm test` (Vitest + Testing Library) - **47 passed** (store actions, API client, controls, closure interaction, run/loading/error states, strategy selection, recovery display, AI/fallback indicator, export/import).
 - `scripts/smoke_api.py <api> <origin>` - 15/15 checks against the deployed API (incl. CORS, live Bedrock brief, fallback path, OSM provenance in exports).
 - `scripts/e2e_flow.py <url>` - Playwright/Chrome run of the full 7-step demo against the deployed Amplify site on the Kurla data: 14/14 checks, zero console errors.
-- `scripts/agent_proof.py` - regenerates the CloudTrail evidence table for the coding agent's AWS connection.
+- `scripts/run_analysis.py` - re-runs every study in [docs/ANALYSIS_AND_FINDINGS.md](docs/ANALYSIS_AND_FINDINGS.md) (rainfall and drainage sensitivity, single-point-of-failure sweep, power cascade, strategy x budget).
+- `scripts/agent_proof.py` - regenerates the CloudTrail evidence table for the AWS connection.
 
-Final release (2026-10-02 17:35 UTC) via `pwsh scripts/deploy.ps1`: stack `UPDATE_COMPLETE`, Amplify job 7 `SUCCEED`, smoke 15/15, browser E2E 14/14.
+Final release (2026-10-02 17:35 UTC) via `pwsh scripts/deploy.ps1`: stack `UPDATE_COMPLETE`, Amplify jobs 7-8 `SUCCEED`, smoke 15/15, browser E2E 14/14.
 
 ## 14. Demo walkthrough
 See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) (90-second script).

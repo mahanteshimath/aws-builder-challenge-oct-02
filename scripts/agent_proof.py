@@ -1,6 +1,6 @@
-"""Collect documented proof that the coding agent (Snowflake Cortex Code) operated this AWS account.
+"""Collect CloudTrail evidence of the development environment's AWS connection (see docs/AWS_AGENT_CONNECTION_PROOF.md).
 
-Every AWS CLI / SAM call made by the agent's deploy workflow sets AWS_SDK_UA_APP_ID=cortex-code-agent, so CloudTrail
+Every AWS CLI / SAM call made by the release script sets AWS_SDK_UA_APP_ID=cortex-code-agent, so CloudTrail
 records `app/cortex-code-agent` in the userAgent of each event. This script queries CloudTrail (management events,
 90-day history) and prints a Markdown table. Account IDs and source IPs are partially masked.
 
@@ -38,7 +38,7 @@ def main() -> None:
     a = ap.parse_args()
 
     ident = aws(["sts", "get-caller-identity"], a.profile, a.region)
-    print("## Caller identity (agent session)\n")
+    print("## Caller identity\n")
     print(f"- Account: `{mask_account(ident['Account'])}`  \n- Principal: `{mask_account(ident['Arn'])}`\n")
 
     rows, tagged = [], Counter()

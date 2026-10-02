@@ -47,7 +47,7 @@ Frontend (`frontend/.env.example`): `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL` (o
 |---|---|
 | `sam validate --lint` | valid |
 | CloudFormation stack `resilience-simulator` | `UPDATE_COMPLETE` (17:35 UTC); `AllowedOrigins` = Amplify URL + localhost:5173/4173 |
-| Amplify app `dxhzlkmrgksnx` | deployment job 7 `SUCCEED` |
+| Amplify app `dxhzlkmrgksnx` | deployment jobs 7-8 `SUCCEED` |
 | `GET /api/v1/health` | `dataset_version: kurla-mithi-osm-1.0`, Bedrock enabled |
 | `scripts/smoke_api.py` against the deployed API with the Amplify origin | 15/15 passed (health, dataset, CORS header, simulate, determinism, optimize, compare, Bedrock brief, fallback path, 3 export formats, 422 validation, 422 unknown id, 404) |
 | CORS preflight from an unlisted origin | no `Access-Control-Allow-Origin` header returned |
@@ -55,7 +55,7 @@ Frontend (`frontend/.env.example`): `VITE_API_BASE_URL`, `VITE_MAP_STYLE_URL` (o
 | Bedrock | live brief returned `provider: bedrock`, model `us.amazon.nova-lite-v1:0`, IDs validated against the facts |
 
 ## Updating
-Backend code change → `python scripts/build_lambda.py; sam deploy ...`. Frontend change → `python scripts/deploy_frontend.py`. Dataset change → `python backend/src/data/build_kurla_dataset.py` (add `--refresh` to re-download OSM / SRTM), re-sync to S3 and redeploy the Lambda bundle (bundled copy is the fallback). Agent evidence → `python scripts/agent_proof.py`.
+Backend code change → `python scripts/build_lambda.py; sam deploy ...`. Frontend change → `python scripts/deploy_frontend.py`. Dataset change → `python backend/src/data/build_kurla_dataset.py` (add `--refresh` to re-download OSM / SRTM), re-sync to S3 and redeploy the Lambda bundle (bundled copy is the fallback). CloudTrail evidence → `python scripts/agent_proof.py`.
 
 ## Teardown
 `pwsh scripts/teardown.ps1 -Profile hackathon -AmplifyAppId <id>` (empties/deletes the bucket via the stack, deletes the stack and Amplify app). Afterwards optionally delete leftover `/aws/lambda/resilience-simulator-*` log groups and the SAM artifact bucket.

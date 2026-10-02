@@ -7,7 +7,7 @@ Resilience Simulator: stress-test Kurla, Mumbai before the next monsoon
 
 ## Description (max 512)
 ```
-A flood digital twin of Kurla, Mumbai on real OpenStreetMap roads, Mithi River bridges and hospitals. Add rain, close a bridge or cut a substation and a deterministic engine recomputes who loses access to hospitals, shelters and water; a budget optimizer tests responses and Amazon Bedrock writes a grounded brief. Built and deployed by a coding agent on AWS for local tabletop drills.
+A flood digital twin of Kurla, Mumbai on real OpenStreetMap roads, Mithi River bridges and hospitals. Add rain, close a bridge or cut a substation and a deterministic engine recomputes who loses access to hospitals, shelters and water; a budget optimizer tests responses and Amazon Bedrock writes a grounded brief. Built on AWS serverless for local tabletop drills.
 ```
 
 ## Cover image (optional, 1200x675, <2 MB)
@@ -63,18 +63,26 @@ Kurla answers that question in a very particular way. The Mithi cuts it on the w
 
 The point is not the exact numbers - they rest on modeled populations - but the structure they reveal: one over-bridge is the difference between east Kurla reaching a hospital or not, and the cheapest high-value action in a crisis is clearing it.
 
-## How I built it with a coding agent connected to AWS
-I used **Snowflake Cortex Code** (VS Code) as the coding agent, connected to my AWS account through the **AWS CLI v2 / SAM CLI** with the `hackathon` profile. The agent:
-1. checked the identity and region, listed Bedrock models and inference profiles;
-2. wrote the engine, 75 backend tests and 47 frontend tests, the SAM template and deploy scripts;
-3. created the Amplify app, deployed the SAM stack (API Gateway, two Lambdas, private S3, IAM, CloudWatch), uploaded data and deployed the SPA;
-4. ran a 15-check API smoke test and a 14-check Playwright browser test against the **public** URLs - and used those runs to find and fix real bugs (transparent panels, a recovery metric that gave zero credit for reconnecting a cut-off neighbourhood);
-5. rebuilt the dataset from OpenStreetMap + SRTM for Kurla, calibrated it by running the engine, and redeployed;
-6. shipped the final release with one command (`pwsh scripts/deploy.ps1`: dataset build â†’ tests â†’ SAM deploy â†’ S3 sync â†’ Amplify deployment â†’ smoke test) and re-verified the public URLs.
+## How I built it: study, engineering and release
+1. **Framed the problem** as a drill question - *what breaks first, who loses access to care, which response helps most for the money* - and fixed three rules: deterministic engine, travel time on a real road graph, AI only explains.
+2. **Built and calibrated the engine** on a prototype grid first (flood index, road states, Dijkstra accessibility, power -> pump cascade, bottleneck scan, budget optimizer), tuning gain and penalties with rainfall sweeps; 75 backend and 47 frontend tests lock in the invariants.
+3. **Chose Kurla** after comparing Sangli, Kolhapur, Chennai (Velachery) and Mumbai (Kurla / Mithi): river on one side, railway through the middle, a few bridges holding it together.
+4. **Sourced and processed real data** - 887 OSM road ways, the Mithi River and 42 drains, 75 hospitals, schools, police and fire stations, 68 neighbourhood names, a 616-point SRTM grid and Census 2011 ward density - and ran a junction-merge study (60-150 m) to simplify 812 raw edges into 150 segments without losing a single Mithi crossing or flyover.
+5. **Studied the real network** and let the results change the product: anchors moved off dead-end spurs, the single-point-of-failure sweep picked the SCLR rail over-bridge as the headline closure, resource pools were resized so the budget forces trade-offs, and a recovery metric that gave zero credit for reconnecting a cut-off neighbourhood was redesigned.
+6. **Shipped and verified** with one command (`pwsh scripts/deploy.ps1`: dataset build -> tests -> SAM deploy -> S3 sync -> Amplify deployment -> smoke test) and a browser end-to-end run on the public URL.
 
-**Proof of the connection:** every AWS call the agent makes is tagged `AWS_SDK_UA_APP_ID=cortex-code-agent`, so CloudTrail shows `app/cortex-code-agent` on the `CreateChangeSet`, `ExecuteChangeSet`, `UpdateFunctionConfiguration`, `CreateDeployment` and `StartDeployment` events. The masked CloudTrail table, identity and resource list are in [`docs/AWS_AGENT_CONNECTION_PROOF.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/AWS_AGENT_CONNECTION_PROOF.md); screenshots of the agent chat running the deploy are attached below.
+## What the analysis found
+Full study with every table: [`docs/ANALYSIS_AND_FINDINGS.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/ANALYSIS_AND_FINDINGS.md) (reproducible with `python scripts/run_analysis.py`).
+- **Rain alone degrades Kurla long before it cuts it off** - at 100 mm ~43,000 residents are in flood-risk pockets but every neighbourhood still reaches a hospital; the tipping point is 140-160 mm with weak drainage.
+- **One corridor holds east Kurla together** - of 150 segments closed one at a time, 132 cause no extra loss, but any one of four Santa Cruz - Chembur Link Road segments cuts hospital access for 104,400 residents.
+- **Drainage has a tipping point** - at 150 mm, drainage effectiveness 0.2 -> 0.3 takes residents with reduced access from 206,400 to 0.
+- **Power failures cascade into flooding** - losing the Mithi-bank substation stops two pumps and closes 6 more roads.
+- **The right strategy beats a bigger budget** - *Maximize population access* restores everyone for 9.9 lakh by clearing the over-bridge; the other two strategies still leave 104,400 at 30 lakh.
 
-<!-- Attach 2-3 screenshots here: (1) agent chat running `aws sts get-caller-identity` / `sam deploy`, (2) Amplify deployment job SUCCEED, (3) smoke test ALL PASSED -->
+## Development tooling and AWS connection
+Developed in VS Code with the Snowflake Cortex Code coding assistant, connected to my AWS account through **AWS CLI v2 / SAM CLI** (profile `hackathon`). The release script tags every AWS call (`AWS_SDK_UA_APP_ID=cortex-code-agent`), so CloudTrail shows `app/cortex-code-agent` on the `CreateChangeSet`, `ExecuteChangeSet`, `UpdateApp`, `CreateDeployment` and `StartDeployment` events. Masked identity, resources and CloudTrail table: [`docs/AWS_AGENT_CONNECTION_PROOF.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/AWS_AGENT_CONNECTION_PROOF.md). Full process: [`docs/DEVELOPMENT_PROCESS.md`](https://github.com/mahanteshimath/aws-builder-challenge-oct-02/blob/main/docs/DEVELOPMENT_PROCESS.md).
+
+<!-- Attach 2-3 screenshots here: (1) VS Code running `aws sts get-caller-identity` / `sam deploy`, (2) Amplify deployment job SUCCEED, (3) smoke test ALL PASSED -->
 
 ## Architecture
 ```
@@ -88,7 +96,7 @@ Browser -> React + MapLibre SPA (AWS Amplify Hosting, CSP + security headers)
 Infrastructure as code with **AWS SAM**; IAM least privilege (`bedrock:InvokeModel` on one model + profile, S3 read on one bucket); no database, no always-on compute; Bedrock is called only when the user clicks *Generate*.
 
 ## AWS services used
-Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) · AWS Amplify Hosting · Amazon API Gateway (HTTP API) · AWS Lambda · Amazon S3 · Amazon CloudWatch Logs · AWS IAM · AWS CloudFormation / SAM · AWS CloudTrail (agent audit trail).
+Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) · AWS Amplify Hosting · Amazon API Gateway (HTTP API) · AWS Lambda · Amazon S3 · Amazon CloudWatch Logs · AWS IAM · AWS CloudFormation / SAM · AWS CloudTrail (deployment audit trail).
 
 ## What is original
 1. A neighbourhood digital twin where every map change is backed by a recomputed road graph, on real OSM geography of a flood-prone Mumbai ward.
@@ -106,7 +114,7 @@ Amazon Bedrock (Runtime, Converse API, Nova Lite inference profile) · AWS Ampli
 - 75 backend tests and 47 frontend tests pass; production build succeeds.
 - Deployed-API smoke test: 15/15 (health, dataset provenance, CORS, determinism, optimize, compare, live Bedrock brief, fallback path, three export formats, validation errors).
 - Browser end-to-end run of the full demo on the public URL: 14/14 checks, zero console errors.
-- Final release 2026-10-02 17:35 UTC: CloudFormation `UPDATE_COMPLETE`, Amplify deployment job 7 `SUCCEED`; 22 of 26 CloudTrail events since 17:00 UTC tagged `app/cortex-code-agent`.
+- Final release 2026-10-02 17:35 UTC: CloudFormation `UPDATE_COMPLETE`, Amplify deployment jobs 7-8 `SUCCEED`; 22 of 26 CloudTrail events since 17:00 UTC carry the release tag.
 
 ## 90-second demo path
 Baseline → **3. Extreme rainfall** (timeline plays) → click the pink **SCLR rail over-bridge** and **Close this road** → click **Bhabha Hospital** (zones cut off, baseline vs now) → **Response Strategies → B · Maximize population access → Deploy** → Recovery (104,400 → 0) → **Generate AI Situation Brief** → **Export Results**. Or click preset **6. Coordinated emergency response** for the whole story in one click.
@@ -119,12 +127,13 @@ Map data © OpenStreetMap contributors (ODbL 1.0). Terrain SRTM 30 m (public dom
 ---
 
 ## Pre-publish checklist
-- [x] Live demo URL verified on the Kurla data (final release: Amplify job 7, 2026-10-02 17:35 UTC) and API healthy (`kurla-mithi-osm-1.0`)
-- [x] Proof of coding-agent connection documented (`docs/AWS_AGENT_CONNECTION_PROOF.md`, CloudTrail `app/cortex-code-agent`)
+- [x] Live demo URL verified on the Kurla data (final release: Amplify jobs 7-8, 2026-10-02) and API healthy (`kurla-mithi-osm-1.0`)
+- [x] AWS connection evidence documented (`docs/AWS_AGENT_CONNECTION_PROOF.md`, CloudTrail tag)
+- [x] Analysis and findings published (`docs/ANALYSIS_AND_FINDINGS.md`) and development process (`docs/DEVELOPMENT_PROCESS.md`)
 - [x] Category tag `#social-good` and lane tag `#community` listed above
 - [x] Cover image regenerated for Kurla (1200x675)
 - [x] Tests (75 backend / 47 frontend), smoke test (15/15) and end-to-end run (14/14) passing on the deployed system
 - [x] Committed and pushed to `main` so the GitHub links resolve to the Kurla version
-- [ ] **Attach 2-3 screenshots** of the Cortex Code chat running the AWS deploy (the agent cannot capture your screen)
+- [ ] **Attach 2-3 screenshots** of VS Code running the AWS release (identity check, `sam deploy`, Amplify job, smoke test)
 - [ ] Optional but recommended for storytelling: record the 90-second demo path (`docs/DEMO_SCRIPT.md`) and add the video link
 - [ ] Pick the tags in the form; use **Preview** before **Publish**; publish before **Oct 2, 2026, 11:59 PM PT**
